@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../auth/bloc/auth_bloc.dart';
 import '../eventos/criar_evento_screen.dart';
+import '../eventos/gerar_ingresso_screen.dart';
+import '../eventos/ingresso_digital_screen.dart';
+import '../tickt/presentation/screens/tickt_screen.dart';
 import '../../shared/services/evento_service.dart';
 import '../../shared/models/evento_model.dart';
 import 'dart:async';
@@ -105,6 +108,17 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text('Gerar Ingresso'),
                 onTap: () {
                   // Navegar para tela de gerar ingresso
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.confirmation_num),
+                title: const Text('Ver Ingresso Exemplo'),
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => IngressoDigitalScreen(ingressoId: '6b84cc6c-df85-40a1-8624-f1d1b31d87e7'),
+                    ),
+                  );
                 },
               ),
               ListTile(
@@ -224,7 +238,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                         ),
                                         const SizedBox(height: 12),
                                         ElevatedButton(
-                                          onPressed: null,
+                                          onPressed: () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) => TicktScreen(evento: evento),
+                                              ),
+                                            );
+                                          },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: const Color(0xFF833ab4),
                                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

@@ -7,7 +7,7 @@ import '../../shared/services/evento_service.dart';
 import '../../shared/services/auth_service.dart';
 import '../../shared/models/user_model.dart';
 import 'criar_evento_sucesso_screen.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class CriarEventoScreen extends StatefulWidget {
   const CriarEventoScreen({super.key});
