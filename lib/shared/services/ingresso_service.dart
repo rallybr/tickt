@@ -114,4 +114,15 @@ class IngressoService {
     final rand = DateTime.now().millisecondsSinceEpoch;
     return List.generate(10, (index) => chars[(rand + index) % chars.length]).join();
   }
+
+  Future<List<IngressoModel>> buscarIngressosDoUsuario(String userId) async {
+    final ingressosResp = await _supabase
+        .from('ingressos')
+        .select()
+        .eq('comprador_id', userId)
+        .order('data_compra', ascending: false);
+    return (ingressosResp as List)
+        .map((json) => IngressoModel.fromJson(json))
+        .toList();
+  }
 } 

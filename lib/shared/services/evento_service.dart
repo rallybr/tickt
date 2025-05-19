@@ -59,4 +59,13 @@ class EventoService {
         .map((json) => EventoModel.fromJson(json))
         .toList();
   }
+
+  Future<String?> buscarNomeIgreja(String igrejaId) async {
+    final resp = await _supabase
+        .from('igrejas')
+        .select('nome')
+        .eq('id', igrejaId)
+        .maybeSingle();
+    return resp != null ? resp['nome'] as String? : null;
+  }
 } 

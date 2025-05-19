@@ -10,6 +10,7 @@ import '../../shared/models/evento_model.dart';
 import '../../shared/widgets/background_image.dart';
 import 'dart:async';
 import '../../shared/widgets/flip_countdown.dart';
+import '../auth/presentation/perfil_screen.dart';
 // Importe outras telas conforme necessário
 
 class HomeScreen extends StatefulWidget {
@@ -121,7 +122,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 leading: const Icon(Icons.person),
                 title: const Text('Meu Perfil'),
                 onTap: () {
-                  // Navegar para tela de perfil
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PerfilScreen()),
+                  );
                 },
               ),
               ListTile(
