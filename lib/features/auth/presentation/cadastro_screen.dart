@@ -7,6 +7,7 @@ import '../../../shared/widgets/foto_picker.dart';
 import '../../../shared/services/cadastro_service.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/widgets/erro_com_botao.dart';
+import '../../../shared/widgets/background_image.dart';
 import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 import '../../home/home_screen.dart';
@@ -19,143 +20,145 @@ class CadastroScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => CadastroBloc(
-        cadastroService: CadastroService(),
-      )..add(CadastroIniciado()),
-      child: BlocBuilder<CadastroBloc, CadastroState>(
-        builder: (context, state) {
-          if (state is CadastroInitial) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (state is CadastroEtapa1) {
-            return _Etapa1Form(complementoPerfil: complementoPerfil);
-          }
-
-          if (state is CadastroEtapa2) {
-            return _Etapa2Form(
-              nome: state.nome,
-              email: state.email,
-              whatsapp: state.whatsapp,
-              foto: state.foto,
-              estados: state.estados,
-              estadoSelecionado: state.estadoSelecionado,
-              blocos: state.blocos,
-              blocoSelecionado: state.blocoSelecionado,
-              regioes: state.regioes,
-              regiaoSelecionada: state.regiaoSelecionada,
-              igrejas: state.igrejas,
-              igrejaSelecionada: state.igrejaSelecionada,
-            );
-          }
-
-          if (state is CadastroEtapa3) {
-            return _Etapa3Form(
-              nome: state.nome,
-              email: state.email,
-              whatsapp: state.whatsapp,
-              foto: state.foto,
-              estado: state.estado,
-              bloco: state.bloco,
-              regiao: state.regiao,
-              igreja: state.igreja,
-            );
-          }
-
-          if (state is CadastroLoading) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          if (state is CadastroError) {
-            String mensagem = 'Ocorreu um erro';
-            String? subtitulo;
-            if (state.message.contains('Já existe um cadastro com este e-mail')) {
-              mensagem = 'E-mail já cadastrado!';
-              subtitulo = 'Já existe um cadastro com este e-mail. Por favor, utilize outro e-mail ou faça login.';
-            } else if (state.message.contains('Já existe um cadastro com este WhatsApp')) {
-              mensagem = 'WhatsApp já cadastrado!';
-              subtitulo = 'Já existe um cadastro com este WhatsApp. Por favor, utilize outro número ou faça login.';
-            } else if (state.message.contains('duplicate key value') && state.message.contains('perfis_pkey')) {
-              mensagem = 'Erro de cadastro!';
-              subtitulo = 'Já existe um cadastro com este usuário. Tente fazer login ou use outro e-mail.';
-            } else {
-              subtitulo = state.message;
+    return BackgroundImage(
+      child: BlocProvider(
+        create: (context) => CadastroBloc(
+          cadastroService: CadastroService(),
+        )..add(CadastroIniciado()),
+        child: BlocBuilder<CadastroBloc, CadastroState>(
+          builder: (context, state) {
+            if (state is CadastroInitial) {
+              return const Center(child: CircularProgressIndicator());
             }
-            return ErroComBotao(
-              mensagem: mensagem,
-              subtitulo: subtitulo,
-              onVoltar: () {
-                Navigator.of(context).pushReplacementNamed('/');
-              },
-            );
-          }
 
-          if (state is CadastroSuccess) {
-            // Navegação automática após 5 segundos
-            Future.delayed(const Duration(seconds: 5), () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (_) => const HomeScreen()),
+            if (state is CadastroEtapa1) {
+              return _Etapa1Form(complementoPerfil: complementoPerfil);
+            }
+
+            if (state is CadastroEtapa2) {
+              return _Etapa2Form(
+                nome: state.nome,
+                email: state.email,
+                whatsapp: state.whatsapp,
+                foto: state.foto,
+                estados: state.estados,
+                estadoSelecionado: state.estadoSelecionado,
+                blocos: state.blocos,
+                blocoSelecionado: state.blocoSelecionado,
+                regioes: state.regioes,
+                regiaoSelecionada: state.regiaoSelecionada,
+                igrejas: state.igrejas,
+                igrejaSelecionada: state.igrejaSelecionada,
               );
-            });
+            }
 
-            return Scaffold(
-              backgroundColor: const Color(0xFFF6F6FB),
-              body: Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.07),
-                        blurRadius: 16,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.celebration,
-                        color: Colors.deepPurple,
-                        size: 64,
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Cadastro realizado com sucesso!',
-                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      const CircularProgressIndicator(
-                        color: Colors.deepPurple,
-                        strokeWidth: 3,
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Tudo pronto! Você será direcionado automaticamente para a tela principal em instantes...',
-                        style: TextStyle(fontSize: 16, color: Colors.black87),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+            if (state is CadastroEtapa3) {
+              return _Etapa3Form(
+                nome: state.nome,
+                email: state.email,
+                whatsapp: state.whatsapp,
+                foto: state.foto,
+                estado: state.estado,
+                bloco: state.bloco,
+                regiao: state.regiao,
+                igreja: state.igreja,
+              );
+            }
+
+            if (state is CadastroLoading) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            if (state is CadastroError) {
+              String mensagem = 'Ocorreu um erro';
+              String? subtitulo;
+              if (state.message.contains('Já existe um cadastro com este e-mail')) {
+                mensagem = 'E-mail já cadastrado!';
+                subtitulo = 'Já existe um cadastro com este e-mail. Por favor, utilize outro e-mail ou faça login.';
+              } else if (state.message.contains('Já existe um cadastro com este WhatsApp')) {
+                mensagem = 'WhatsApp já cadastrado!';
+                subtitulo = 'Já existe um cadastro com este WhatsApp. Por favor, utilize outro número ou faça login.';
+              } else if (state.message.contains('duplicate key value') && state.message.contains('perfis_pkey')) {
+                mensagem = 'Erro de cadastro!';
+                subtitulo = 'Já existe um cadastro com este usuário. Tente fazer login ou use outro e-mail.';
+              } else {
+                subtitulo = state.message;
+              }
+              return ErroComBotao(
+                mensagem: mensagem,
+                subtitulo: subtitulo,
+                onVoltar: () {
+                  Navigator.of(context).pushReplacementNamed('/');
+                },
+              );
+            }
+
+            if (state is CadastroSuccess) {
+              // Navegação automática após 5 segundos
+              Future.delayed(const Duration(seconds: 5), () {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                );
+              });
+
+              return Scaffold(
+                backgroundColor: const Color(0xFFF6F6FB),
+                body: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.07),
+                          blurRadius: 16,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.celebration,
+                          color: Colors.deepPurple,
+                          size: 64,
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Cadastro realizado com sucesso!',
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 20),
+                        const CircularProgressIndicator(
+                          color: Colors.deepPurple,
+                          strokeWidth: 3,
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'Tudo pronto! Você será direcionado automaticamente para a tela principal em instantes...',
+                          style: TextStyle(fontSize: 16, color: Colors.black87),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            );
-          }
+              );
+            }
 
-          if (state is CadastroAguardandoConfirmacaoEmail) {
-            return _AguardandoConfirmacaoEmailScreen(state: state);
-          }
+            if (state is CadastroAguardandoConfirmacaoEmail) {
+              return _AguardandoConfirmacaoEmailScreen(state: state);
+            }
 
-          return const SizedBox.shrink();
-        },
+            return const SizedBox.shrink();
+          },
+        ),
       ),
     );
   }
@@ -238,98 +241,101 @@ class _Etapa1FormState extends State<_Etapa1Form> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.complementoPerfil ? 'Completar Perfil' : 'Cadastro - Etapa 1'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (widget.complementoPerfil)
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    'Complete seu perfil para acessar o aplicativo.',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                    textAlign: TextAlign.center,
+    return BackgroundImage(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(widget.complementoPerfil ? 'Completar Perfil' : 'Cadastro - Etapa 1'),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (widget.complementoPerfil)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 16),
+                    child: Text(
+                      'Complete seu perfil para acessar o aplicativo.',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                Center(
+                  child: FotoPicker(
+                    foto: _foto,
+                    onFotoSelecionada: (foto) {
+                      setState(() {
+                        _foto = foto;
+                      });
+                    },
                   ),
                 ),
-              Center(
-                child: FotoPicker(
-                  foto: _foto,
-                  onFotoSelecionada: (foto) {
-                    setState(() {
-                      _foto = foto;
-                    });
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _nomeController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome completo',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira seu nome';
+                    }
+                    return null;
                   },
                 ),
-              ),
-              const SizedBox(height: 32),
-              TextFormField(
-                controller: _nomeController,
-                decoration: const InputDecoration(
-                  labelText: 'Nome completo',
-                  prefixIcon: Icon(Icons.person_outline),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'E-mail',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: _validateEmail,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira seu nome';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'E-mail',
-                  prefixIcon: Icon(Icons.email_outlined),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _whatsappController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'WhatsApp',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                    hintText: '(99)99999-9999',
+                  ),
+                  inputFormatters: [
+                    _whatsappMaskFormatter,
+                  ],
+                  validator: _validateWhatsapp,
                 ),
-                validator: _validateEmail,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _whatsappController,
-                keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
-                  labelText: 'WhatsApp',
-                  prefixIcon: Icon(Icons.phone_outlined),
-                  hintText: '(99)99999-9999',
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _senhaController,
+                  obscureText: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Senha',
+                    prefixIcon: Icon(Icons.lock_outline),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira uma senha';
+                    }
+                    if (value.length < 6) {
+                      return 'A senha deve ter pelo menos 6 caracteres';
+                    }
+                    return null;
+                  },
                 ),
-                inputFormatters: [
-                  _whatsappMaskFormatter,
-                ],
-                validator: _validateWhatsapp,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _senhaController,
-                obscureText: true,
-                decoration: const InputDecoration(
-                  labelText: 'Senha',
-                  prefixIcon: Icon(Icons.lock_outline),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _proximo,
+                  child: Text(widget.complementoPerfil ? 'Salvar Perfil' : 'Próximo'),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira uma senha';
-                  }
-                  if (value.length < 6) {
-                    return 'A senha deve ter pelo menos 6 caracteres';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _proximo,
-                child: Text(widget.complementoPerfil ? 'Salvar Perfil' : 'Próximo'),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -368,147 +374,150 @@ class _Etapa2Form extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cadastro - Etapa 2'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            DropdownButtonFormField<EstadoModel>(
-              value: estadoSelecionado,
-              decoration: const InputDecoration(
-                labelText: 'Estado',
-                prefixIcon: Icon(Icons.location_city_outlined),
-                border: OutlineInputBorder(),
+    return BackgroundImage(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Cadastro - Etapa 2'),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<EstadoModel>(
+                value: estadoSelecionado,
+                decoration: const InputDecoration(
+                  labelText: 'Estado',
+                  prefixIcon: Icon(Icons.location_city_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: estados.map((estado) {
+                  return DropdownMenuItem(
+                    value: estado,
+                    child: Text(estado.nome),
+                  );
+                }).toList(),
+                onChanged: (estado) {
+                  if (estado != null) {
+                    context.read<CadastroBloc>().add(
+                          CadastroEstadoSelecionado(estado),
+                        );
+                  }
+                },
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor, selecione um estado';
+                  }
+                  return null;
+                },
               ),
-              items: estados.map((estado) {
-                return DropdownMenuItem(
-                  value: estado,
-                  child: Text(estado.nome),
-                );
-              }).toList(),
-              onChanged: (estado) {
-                if (estado != null) {
-                  context.read<CadastroBloc>().add(
-                        CadastroEstadoSelecionado(estado),
-                      );
-                }
-              },
-              validator: (value) {
-                if (value == null) {
-                  return 'Por favor, selecione um estado';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<BlocoModel>(
-              value: blocoSelecionado,
-              decoration: const InputDecoration(
-                labelText: 'Bloco',
-                prefixIcon: Icon(Icons.grid_view_outlined),
-                border: OutlineInputBorder(),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<BlocoModel>(
+                value: blocoSelecionado,
+                decoration: const InputDecoration(
+                  labelText: 'Bloco',
+                  prefixIcon: Icon(Icons.grid_view_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: blocos.map((bloco) {
+                  return DropdownMenuItem(
+                    value: bloco,
+                    child: Text(bloco.nome),
+                  );
+                }).toList(),
+                onChanged: estadoSelecionado != null
+                    ? (bloco) {
+                        if (bloco != null) {
+                          context.read<CadastroBloc>().add(
+                                CadastroBlocoSelecionado(bloco),
+                              );
+                        }
+                      }
+                    : null,
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor, selecione um bloco';
+                  }
+                  return null;
+                },
               ),
-              items: blocos.map((bloco) {
-                return DropdownMenuItem(
-                  value: bloco,
-                  child: Text(bloco.nome),
-                );
-              }).toList(),
-              onChanged: estadoSelecionado != null
-                  ? (bloco) {
-                      if (bloco != null) {
+              const SizedBox(height: 16),
+              DropdownButtonFormField<RegiaoModel>(
+                value: regiaoSelecionada,
+                decoration: const InputDecoration(
+                  labelText: 'Região',
+                  prefixIcon: Icon(Icons.map_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: regioes.map((regiao) {
+                  return DropdownMenuItem(
+                    value: regiao,
+                    child: Text(regiao.nome),
+                  );
+                }).toList(),
+                onChanged: blocoSelecionado != null
+                    ? (regiao) {
+                        if (regiao != null) {
+                          context.read<CadastroBloc>().add(
+                                CadastroRegiaoSelecionada(regiao),
+                              );
+                        }
+                      }
+                    : null,
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor, selecione uma região';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<IgrejaModel>(
+                value: igrejaSelecionada,
+                decoration: const InputDecoration(
+                  labelText: 'Igreja',
+                  prefixIcon: Icon(Icons.church_outlined),
+                  border: OutlineInputBorder(),
+                ),
+                items: igrejas.map((igreja) {
+                  return DropdownMenuItem(
+                    value: igreja,
+                    child: Text(igreja.nome),
+                  );
+                }).toList(),
+                onChanged: regiaoSelecionada != null
+                    ? (igreja) {
+                        if (igreja != null) {
+                          context.read<CadastroBloc>().add(
+                                CadastroIgrejaSelecionada(igreja),
+                              );
+                        }
+                      }
+                    : null,
+                validator: (value) {
+                  if (value == null) {
+                    return 'Por favor, selecione uma igreja';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: estadoSelecionado != null &&
+                        blocoSelecionado != null &&
+                        regiaoSelecionada != null &&
+                        igrejaSelecionada != null
+                    ? () {
                         context.read<CadastroBloc>().add(
-                              CadastroBlocoSelecionado(bloco),
+                              CadastroIgrejaSelecionada(igrejaSelecionada!),
                             );
                       }
-                    }
-                  : null,
-              validator: (value) {
-                if (value == null) {
-                  return 'Por favor, selecione um bloco';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<RegiaoModel>(
-              value: regiaoSelecionada,
-              decoration: const InputDecoration(
-                labelText: 'Região',
-                prefixIcon: Icon(Icons.map_outlined),
-                border: OutlineInputBorder(),
+                    : null,
+                child: const Text('Próximo'),
               ),
-              items: regioes.map((regiao) {
-                return DropdownMenuItem(
-                  value: regiao,
-                  child: Text(regiao.nome),
-                );
-              }).toList(),
-              onChanged: blocoSelecionado != null
-                  ? (regiao) {
-                      if (regiao != null) {
-                        context.read<CadastroBloc>().add(
-                              CadastroRegiaoSelecionada(regiao),
-                            );
-                      }
-                    }
-                  : null,
-              validator: (value) {
-                if (value == null) {
-                  return 'Por favor, selecione uma região';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<IgrejaModel>(
-              value: igrejaSelecionada,
-              decoration: const InputDecoration(
-                labelText: 'Igreja',
-                prefixIcon: Icon(Icons.church_outlined),
-                border: OutlineInputBorder(),
-              ),
-              items: igrejas.map((igreja) {
-                return DropdownMenuItem(
-                  value: igreja,
-                  child: Text(igreja.nome),
-                );
-              }).toList(),
-              onChanged: regiaoSelecionada != null
-                  ? (igreja) {
-                      if (igreja != null) {
-                        context.read<CadastroBloc>().add(
-                              CadastroIgrejaSelecionada(igreja),
-                            );
-                      }
-                    }
-                  : null,
-              validator: (value) {
-                if (value == null) {
-                  return 'Por favor, selecione uma igreja';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: estadoSelecionado != null &&
-                      blocoSelecionado != null &&
-                      regiaoSelecionada != null &&
-                      igrejaSelecionada != null
-                  ? () {
-                      context.read<CadastroBloc>().add(
-                            CadastroIgrejaSelecionada(igrejaSelecionada!),
-                          );
-                    }
-                  : null,
-              child: const Text('Próximo'),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -538,49 +547,52 @@ class _Etapa3Form extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Cadastro - Etapa 3'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Confirme seus dados:',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+    return BackgroundImage(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Cadastro - Etapa 3'),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text(
+                'Confirme seus dados:',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            _InfoCard(
-              title: 'Dados Pessoais',
-              items: [
-                _InfoItem(icon: Icons.person_outline, label: 'Nome', value: nome),
-                _InfoItem(icon: Icons.email_outlined, label: 'E-mail', value: email),
-                _InfoItem(icon: Icons.phone_outlined, label: 'WhatsApp', value: whatsapp),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _InfoCard(
-              title: 'Localização',
-              items: [
-                _InfoItem(icon: Icons.location_city_outlined, label: 'Estado', value: estado.nome),
-                _InfoItem(icon: Icons.grid_view_outlined, label: 'Bloco', value: bloco.nome),
-                _InfoItem(icon: Icons.map_outlined, label: 'Região', value: regiao.nome),
-                _InfoItem(icon: Icons.church_outlined, label: 'Igreja', value: igreja.nome),
-              ],
-            ),
-            const SizedBox(height: 32),
-            ElevatedButton(
-              onPressed: () {
-                context.read<CadastroBloc>().add(CadastroFinalizado());
-              },
-              child: const Text('Confirmar Cadastro'),
-            ),
-          ],
+              const SizedBox(height: 24),
+              _InfoCard(
+                title: 'Dados Pessoais',
+                items: [
+                  _InfoItem(icon: Icons.person_outline, label: 'Nome', value: nome),
+                  _InfoItem(icon: Icons.email_outlined, label: 'E-mail', value: email),
+                  _InfoItem(icon: Icons.phone_outlined, label: 'WhatsApp', value: whatsapp),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _InfoCard(
+                title: 'Localização',
+                items: [
+                  _InfoItem(icon: Icons.location_city_outlined, label: 'Estado', value: estado.nome),
+                  _InfoItem(icon: Icons.grid_view_outlined, label: 'Bloco', value: bloco.nome),
+                  _InfoItem(icon: Icons.map_outlined, label: 'Região', value: regiao.nome),
+                  _InfoItem(icon: Icons.church_outlined, label: 'Igreja', value: igreja.nome),
+                ],
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton(
+                onPressed: () {
+                  context.read<CadastroBloc>().add(CadastroFinalizado());
+                },
+                child: const Text('Confirmar Cadastro'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -688,54 +700,57 @@ class _AguardandoConfirmacaoEmailScreenState extends State<_AguardandoConfirmaca
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Confirme seu e-mail')),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Icon(Icons.email_outlined, size: 80, color: Colors.deepPurple),
-              const SizedBox(height: 32),
-              const Text(
-                'Quase lá!\n\nEnviamos um link de confirmação para o seu e-mail.\n\nPor favor, confirme seu e-mail antes de continuar.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.black87),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.refresh),
-                onPressed: () {
-                  context.read<CadastroBloc>().add(
-                    CadastroConfirmarEmail(widget.state.email, widget.state.senha),
-                  );
-                },
-                label: const Text('Já confirmei meu e-mail'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.deepPurple,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+    return BackgroundImage(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(title: const Text('Confirme seu e-mail')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const Icon(Icons.email_outlined, size: 80, color: Colors.deepPurple),
+                const SizedBox(height: 32),
+                const Text(
+                  'Quase lá!\n\nEnviamos um link de confirmação para o seu e-mail.\n\nPor favor, confirme seu e-mail antes de continuar.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.black87),
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: () {
+                    context.read<CadastroBloc>().add(
+                      CadastroConfirmarEmail(widget.state.email, widget.state.senha),
+                    );
+                  },
+                  label: const Text('Já confirmei meu e-mail'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.deepPurple,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              TextButton.icon(
-                icon: const Icon(Icons.arrow_back),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                label: const Text('Voltar para o login'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.deepPurple,
-                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                const SizedBox(height: 24),
+                TextButton.icon(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  label: const Text('Voltar para o login'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.deepPurple,
+                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

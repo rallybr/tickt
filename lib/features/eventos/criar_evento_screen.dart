@@ -8,6 +8,7 @@ import '../../shared/services/auth_service.dart';
 import '../../shared/models/user_model.dart';
 import 'criar_evento_sucesso_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../shared/widgets/background_image.dart';
 
 class CriarEventoScreen extends StatefulWidget {
   const CriarEventoScreen({super.key});
@@ -24,6 +25,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
   DateTime? _dataInicio;
   DateTime? _dataFim;
   Uint8List? _banner;
+  Uint8List? _logoEvento;
   bool _loading = false;
 
   Future<void> _pickBanner() async {
@@ -64,6 +66,44 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
     );
   }
 
+  Future<void> _pickLogoEvento() async {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Tirar foto da logo'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(source: ImageSource.camera);
+                if (picked != null) {
+                  final bytes = await picked.readAsBytes();
+                  setState(() => _logoEvento = bytes);
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Selecionar logo da galeria'),
+              onTap: () async {
+                Navigator.of(context).pop();
+                final picker = ImagePicker();
+                final picked = await picker.pickImage(source: ImageSource.gallery);
+                if (picked != null) {
+                  final bytes = await picked.readAsBytes();
+                  setState(() => _logoEvento = bytes);
+                }
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _salvarEvento() async {
     if (!_formKey.currentState!.validate() || _banner == null || _dataInicio == null || _dataFim == null) return;
     setState(() => _loading = true);
@@ -83,6 +123,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
         evento: evento,
         banner: _banner!,
         userId: user.id,
+        logoEvento: _logoEvento,
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Evento criado com sucesso!')));
@@ -99,18 +140,7 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF833ab4), // Roxo Instagram
-            Color(0xFFfd1d1d), // Rosa/laranja Instagram
-            Color(0xFFfcb045), // Amarelo Instagram
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+    return BackgroundImage(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
@@ -268,6 +298,18 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
                     padding: EdgeInsets.only(top: 8),
                     child: Text('O banner é obrigatório', style: TextStyle(color: Colors.red)),
                   ),
+                const SizedBox(height: 24),
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.image, color: Color(0xFF833ab4)),
+                  label: Text(_logoEvento == null ? 'Selecionar logo do evento' : 'Logo selecionada', style: const TextStyle(color: Color(0xFF833ab4))),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF833ab4)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: Colors.white.withOpacity(0.9),
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                  ),
+                  onPressed: _pickLogoEvento,
+                ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: _loading ? null : _salvarEvento,

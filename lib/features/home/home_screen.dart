@@ -7,7 +7,9 @@ import '../eventos/ingresso_digital_screen.dart';
 import '../tickt/presentation/screens/tickt_screen.dart';
 import '../../shared/services/evento_service.dart';
 import '../../shared/models/evento_model.dart';
+import '../../shared/widgets/background_image.dart';
 import 'dart:async';
+import '../../shared/widgets/flip_countdown.dart';
 // Importe outras telas conforme necessário
 
 class HomeScreen extends StatefulWidget {
@@ -57,18 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF833ab4), // Roxo Instagram
-            Color(0xFFfd1d1d), // Rosa/laranja Instagram
-            Color(0xFFfcb045), // Amarelo Instagram
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+    return BackgroundImage(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
@@ -168,153 +159,196 @@ class _HomeScreenState extends State<HomeScreen> {
                 return Center(child: Text('Erro ao carregar eventos: ${snapshot.error}', style: TextStyle(color: Colors.white)));
               }
               final eventos = snapshot.data ?? [];
-              if (_eventos.isEmpty && eventos.isNotEmpty) {
-                _eventos = eventos;
+              // Separar eventos futuros e passados
+              final agora = DateTime.now();
+              final eventosFuturos = eventos.where((e) => e.dataInicio.isAfter(agora)).toList();
+              final eventosPassados = eventos.where((e) => e.dataInicio.isBefore(agora)).toList()
+                ..sort((a, b) => b.dataInicio.compareTo(a.dataInicio));
+              if (_eventos.isEmpty && eventosFuturos.isNotEmpty) {
+                _eventos = eventosFuturos;
                 _startAutoPlay();
               }
-              if (eventos.isEmpty) {
+              if (eventosFuturos.isEmpty && eventosPassados.isEmpty) {
                 return const Center(child: Text('Nenhum evento cadastrado ainda.', style: TextStyle(color: Colors.white)));
               }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Carrossel de banners dos próximos eventos
-                  SizedBox(
-                    height: 320,
-                    child: PageView.builder(
-                      controller: _pageController,
-                      itemCount: eventos.length,
-                      onPageChanged: (index) {
-                        setState(() {
-                          _currentPage = index;
-                        });
-                      },
-                      itemBuilder: (context, index) {
-                        final evento = eventos[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              color: Colors.white.withOpacity(0.15),
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  if (evento.bannerUrl.isNotEmpty)
-                                    Image.network(
-                                      evento.bannerUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stack) => Container(color: Colors.grey[300]),
-                                    ),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [Colors.black.withOpacity(0.5), Colors.transparent],
-                                        begin: Alignment.bottomCenter,
-                                        end: Alignment.topCenter,
+              // Próximo evento futuro para o countdown
+              final proximoEvento = eventosFuturos.isNotEmpty ? (eventosFuturos..sort((a, b) => a.dataInicio.compareTo(b.dataInicio))).first : null;
+              return SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Carrossel de banners dos próximos eventos
+                    if (eventosFuturos.isNotEmpty)
+                    SizedBox(
+                      height: 320,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: eventosFuturos.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentPage = index;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          final evento = eventosFuturos[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                color: Colors.white.withOpacity(0.15),
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    if (evento.bannerUrl.isNotEmpty)
+                                      Image.network(
+                                        evento.bannerUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stack) => Container(color: Colors.grey[300]),
+                                      ),
+                                    Container(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [Colors.black.withOpacity(0.5), Colors.transparent],
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  Positioned(
-                                    left: 16,
-                                    right: 16,
-                                    bottom: 24,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          evento.titulo,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                                    Positioned(
+                                      left: 16,
+                                      right: 16,
+                                      bottom: 24,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            evento.titulo,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          evento.local,
-                                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _formatarData(evento.dataInicio),
-                                          style: const TextStyle(color: Colors.white, fontSize: 15),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        ElevatedButton(
-                                          onPressed: () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) => TicktScreen(evento: evento),
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF833ab4),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            evento.local,
+                                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
                                           ),
-                                          child: const Text('Participar do evento', style: TextStyle(color: Colors.white)),
-                                        ),
-                                      ],
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _formatarData(evento.dataInicio),
+                                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) => TicktScreen(evento: evento),
+                                                ),
+                                              );
+                                            },
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: const Color(0xFF833ab4),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            child: const Text('Participar do evento', style: TextStyle(color: Colors.white)),
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Título acima do countdown
+                    if (proximoEvento != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 16, right: 16, bottom: 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'Próximo Evento: ${proximoEvento.titulo}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Countdown animado para o evento mais próximo
+                    if (proximoEvento != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: FlipCountdown(targetDate: proximoEvento.dataInicio),
+                      ),
+                    ),
+                    // Lista dos últimos eventos passados
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: Text(
+                              'Eventos Recentes',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    blurRadius: 8,
                                   ),
                                 ],
                               ),
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                  // Countdown animado para o evento mais próximo
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          const Text('Evento mais próximo:', style: TextStyle(color: Colors.white, fontSize: 18)),
-                          const SizedBox(height: 8),
-                          // Substituir pelo countdown real
-                          TweenAnimationBuilder<Duration>(
-                            duration: const Duration(hours: 2),
-                            tween: Tween(begin: const Duration(hours: 2), end: Duration.zero),
-                            builder: (context, value, child) {
-                              final hours = value.inHours;
-                              final minutes = value.inMinutes % 60;
-                              final seconds = value.inSeconds % 60;
-                              return Text(
-                                '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}',
-                                style: const TextStyle(fontSize: 32, color: Colors.white, fontWeight: FontWeight.bold),
-                              );
-                            },
-                            onEnd: () {},
+                          SizedBox(
+                            height: 400,
+                            child: eventosPassados.isEmpty
+                              ? const Center(child: Text('Nenhum evento passado.', style: TextStyle(color: Colors.white)))
+                              : ListView.builder(
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: eventosPassados.length,
+                                  itemBuilder: (context, index) {
+                                    final evento = eventosPassados[index];
+                                    return Card(
+                                      color: Colors.white.withOpacity(0.8),
+                                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      child: ListTile(
+                                        leading: const Icon(Icons.event, color: Colors.deepPurple),
+                                        title: Text(evento.titulo),
+                                        subtitle: Text(_formatarData(evento.dataInicio)),
+                                        onTap: () {
+                                          // Navegar para detalhes do evento
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  // Lista dos últimos 5 eventos
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: 5, // Substituir pelo número real de eventos
-                      itemBuilder: (context, index) {
-                        return Card(
-                          color: Colors.white.withOpacity(0.8),
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: ListTile(
-                            leading: const Icon(Icons.event, color: Colors.deepPurple),
-                            title: Text('Evento ${index + 1}'),
-                            subtitle: const Text('Resumo do evento...'),
-                            onTap: () {
-                              // Navegar para detalhes do evento
-                            },
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),

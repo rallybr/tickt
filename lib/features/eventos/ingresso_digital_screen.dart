@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../shared/services/ingresso_service.dart';
 import '../../shared/models/ingresso_model.dart';
 import '../../shared/models/evento_model.dart';
+import '../../shared/widgets/background_image.dart';
 
 class IngressoDigitalScreen extends StatefulWidget {
   final String ingressoId;
@@ -24,38 +25,41 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Confirmação de ingresso'),
-        backgroundColor: const Color(0xFFd4145a),
-      ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Erro: ${snapshot.error}'));
-          }
-          final ingresso = snapshot.data!['ingresso'] as IngressoModel;
-          final evento = snapshot.data!['evento'] as EventoModel;
-          return Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _IngressoTicket(
-                  codigoQr: ingresso.codigoQr,
-                  numeroIngresso: ingresso.id,
-                  tituloEvento: evento.titulo,
-                  local: evento.local,
-                  dataInicio: evento.dataInicio,
-                  logoPath: 'assets/images/logo_evento.png', // ajuste conforme seu asset
+    return BackgroundImage(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: const Text('Confirmação de ingresso'),
+          backgroundColor: const Color(0xFFd4145a),
+        ),
+        body: FutureBuilder<Map<String, dynamic>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Erro: ${snapshot.error}'));
+            }
+            final ingresso = snapshot.data!['ingresso'] as IngressoModel;
+            final evento = snapshot.data!['evento'] as EventoModel;
+            return Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: _IngressoTicket(
+                    codigoQr: ingresso.codigoQr,
+                    numeroIngresso: ingresso.id,
+                    tituloEvento: evento.titulo,
+                    local: evento.local,
+                    dataInicio: evento.dataInicio,
+                    logoPath: 'assets/images/logo_evento.png', // ajuste conforme seu asset
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

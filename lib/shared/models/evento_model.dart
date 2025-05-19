@@ -11,6 +11,7 @@ class EventoModel {
   final String? status;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? logoEvento;
 
   EventoModel({
     this.id,
@@ -25,6 +26,7 @@ class EventoModel {
     this.status,
     this.createdAt,
     this.updatedAt,
+    this.logoEvento,
   });
 
   factory EventoModel.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class EventoModel {
       status: json['status'],
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : null,
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : null,
+      logoEvento: json['logo_evento'],
     );
   }
 
@@ -55,6 +58,7 @@ class EventoModel {
       'igreja_id': igrejaId,
       'criador_id': criadorId,
       'status': status,
+      'logo_evento': logoEvento,
     };
     if (id != null) {
       map['id'] = id;

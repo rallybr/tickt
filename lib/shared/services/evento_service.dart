@@ -13,14 +13,26 @@ class EventoService {
     return url;
   }
 
+  Future<String> uploadLogoEvento(Uint8List logo, String userId) async {
+    final fileName = 'logos/$userId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final storageResponse = await _supabase.storage.from('eventos').uploadBinary(fileName, logo);
+    final url = _supabase.storage.from('eventos').getPublicUrl(fileName);
+    return url;
+  }
+
   Future<EventoModel> criarEvento({
     required EventoModel evento,
     required Uint8List banner,
     required String userId,
+    Uint8List? logoEvento,
   }) async {
     // Upload do banner
     final bannerUrl = await uploadBanner(banner, userId);
-    // Monta o evento com o banner
+    String? logoUrl;
+    if (logoEvento != null) {
+      logoUrl = await uploadLogoEvento(logoEvento, userId);
+    }
+    // Monta o evento com o banner e logo
     final eventoComBanner = EventoModel(
       titulo: evento.titulo,
       descricao: evento.descricao,
@@ -31,6 +43,7 @@ class EventoService {
       igrejaId: evento.igrejaId,
       criadorId: userId,
       status: evento.status ?? 'rascunho',
+      logoEvento: logoUrl,
     );
     // Salva no Supabase
     final response = await _supabase.from('eventos').insert(eventoComBanner.toJson()).select().single();

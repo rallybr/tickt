@@ -1,24 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import '../home/home_screen.dart';
+import '../../shared/widgets/background_image.dart';
 
 class EventoCriadoSucessoScreen extends StatelessWidget {
   const EventoCriadoSucessoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF833ab4),
-            Color(0xFFfd1d1d),
-            Color(0xFFfcb045),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
+    return BackgroundImage(
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: Center(
