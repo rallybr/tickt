@@ -108,6 +108,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text('Gerar Ingresso'),
                 onTap: () {
                   // Navegar para tela de gerar ingresso
+                  // (Removido: GerarIngressoScreen)
+                  // O fluxo correto é pelo botão na tela de detalhes do evento
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Acesse um evento e clique em "Gerar Meu Ingresso".')),
+                  );
                 },
               ),
               ListTile(

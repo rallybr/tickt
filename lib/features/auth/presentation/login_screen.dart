@@ -114,6 +114,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
+                        if (state is AuthAuthenticated) {
+                          return ElevatedButton(
+                            onPressed: state is AuthLoading
+                                ? null
+                                : _handleLogin,
+                            child: state is AuthLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
+                                      ),
+                                    ),
+                                  )
+                                : const Text('Entrar'),
+                          );
+                        }
+                        if (state is AuthIncompleteProfile) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            Navigator.of(context).pushReplacement(
+                              MaterialPageRoute(builder: (_) => CadastroScreen(complementoPerfil: true)),
+                            );
+                          });
+                          return const Center(child: CircularProgressIndicator());
+                        }
                         return ElevatedButton(
                           onPressed: state is AuthLoading
                               ? null

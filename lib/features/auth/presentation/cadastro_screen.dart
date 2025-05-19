@@ -6,9 +6,16 @@ import '../bloc/cadastro_bloc.dart';
 import '../../../shared/widgets/foto_picker.dart';
 import '../../../shared/services/cadastro_service.dart';
 import '../../../shared/models/models.dart';
+import '../../../shared/widgets/erro_com_botao.dart';
+import 'dart:async';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
+import '../../home/home_screen.dart';
+import 'package:flutter/services.dart';
+import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class CadastroScreen extends StatelessWidget {
-  const CadastroScreen({super.key});
+  final bool complementoPerfil;
+  const CadastroScreen({super.key, this.complementoPerfil = false});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +30,7 @@ class CadastroScreen extends StatelessWidget {
           }
 
           if (state is CadastroEtapa1) {
-            return const _Etapa1Form();
+            return _Etapa1Form(complementoPerfil: complementoPerfil);
           }
 
           if (state is CadastroEtapa2) {
@@ -63,67 +70,88 @@ class CadastroScreen extends StatelessWidget {
           }
 
           if (state is CadastroError) {
-            return Scaffold(
-              body: Center(
-                child: Text('Erro: ${state.message}'),
-              ),
+            String mensagem = 'Ocorreu um erro';
+            String? subtitulo;
+            if (state.message.contains('Já existe um cadastro com este e-mail')) {
+              mensagem = 'E-mail já cadastrado!';
+              subtitulo = 'Já existe um cadastro com este e-mail. Por favor, utilize outro e-mail ou faça login.';
+            } else if (state.message.contains('Já existe um cadastro com este WhatsApp')) {
+              mensagem = 'WhatsApp já cadastrado!';
+              subtitulo = 'Já existe um cadastro com este WhatsApp. Por favor, utilize outro número ou faça login.';
+            } else if (state.message.contains('duplicate key value') && state.message.contains('perfis_pkey')) {
+              mensagem = 'Erro de cadastro!';
+              subtitulo = 'Já existe um cadastro com este usuário. Tente fazer login ou use outro e-mail.';
+            } else {
+              subtitulo = state.message;
+            }
+            return ErroComBotao(
+              mensagem: mensagem,
+              subtitulo: subtitulo,
+              onVoltar: () {
+                Navigator.of(context).pushReplacementNamed('/');
+              },
             );
           }
 
           if (state is CadastroSuccess) {
-            return Scaffold(
-              body: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'Cadastro realizado com sucesso!',
-                      style: TextStyle(fontSize: 20),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Voltar para o login'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
+            // Navegação automática após 5 segundos
+            Future.delayed(const Duration(seconds: 5), () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+              );
+            });
 
-          if (state is CadastroAguardandoConfirmacaoEmail) {
             return Scaffold(
-              appBar: AppBar(title: const Text('Confirme seu e-mail')),
+              backgroundColor: const Color(0xFFF6F6FB),
               body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.07),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(Icons.email_outlined, size: 64, color: Colors.blue),
+                      const Icon(
+                        Icons.celebration,
+                        color: Colors.deepPurple,
+                        size: 64,
+                      ),
                       const SizedBox(height: 24),
                       const Text(
-                        'Enviamos um link de confirmação para o seu e-mail.\n\nPor favor, confirme seu e-mail antes de continuar.',
+                        'Cadastro realizado com sucesso!',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.deepPurple),
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 18),
                       ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: () {
-                          context.read<CadastroBloc>().add(
-                            CadastroConfirmarEmail(state.email, state.senha),
-                          );
-                        },
-                        child: const Text('Já confirmei meu e-mail'),
+                      const SizedBox(height: 20),
+                      const CircularProgressIndicator(
+                        color: Colors.deepPurple,
+                        strokeWidth: 3,
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Tudo pronto! Você será direcionado automaticamente para a tela principal em instantes...',
+                        style: TextStyle(fontSize: 16, color: Colors.black87),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
               ),
             );
+          }
+
+          if (state is CadastroAguardandoConfirmacaoEmail) {
+            return _AguardandoConfirmacaoEmailScreen(state: state);
           }
 
           return const SizedBox.shrink();
@@ -134,7 +162,8 @@ class CadastroScreen extends StatelessWidget {
 }
 
 class _Etapa1Form extends StatefulWidget {
-  const _Etapa1Form();
+  final bool complementoPerfil;
+  const _Etapa1Form({this.complementoPerfil = false});
 
   @override
   State<_Etapa1Form> createState() => _Etapa1FormState();
@@ -148,6 +177,11 @@ class _Etapa1FormState extends State<_Etapa1Form> {
   final _senhaController = TextEditingController();
   Uint8List? _foto;
 
+  final _whatsappMaskFormatter = MaskTextInputFormatter(
+    mask: '(##)#####-####',
+    filter: {"#": RegExp(r'[0-9]')},
+  );
+
   @override
   void dispose() {
     _nomeController.dispose();
@@ -155,6 +189,28 @@ class _Etapa1FormState extends State<_Etapa1Form> {
     _whatsappController.dispose();
     _senhaController.dispose();
     super.dispose();
+  }
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor, insira seu e-mail';
+    }
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}');
+    if (!emailRegex.hasMatch(value)) {
+      return 'Por favor, insira um e-mail válido';
+    }
+    return null;
+  }
+
+  String? _validateWhatsapp(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor, insira seu WhatsApp';
+    }
+    final whatsappRegex = RegExp(r'^\(\d{2}\)\d{5}-\d{4}');
+    if (!whatsappRegex.hasMatch(value)) {
+      return 'Formato: (99)99999-9999';
+    }
+    return null;
   }
 
   void _proximo() {
@@ -184,7 +240,7 @@ class _Etapa1FormState extends State<_Etapa1Form> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Cadastro - Etapa 1'),
+        title: Text(widget.complementoPerfil ? 'Completar Perfil' : 'Cadastro - Etapa 1'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -193,6 +249,15 @@ class _Etapa1FormState extends State<_Etapa1Form> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (widget.complementoPerfil)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    'Complete seu perfil para acessar o aplicativo.',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               Center(
                 child: FotoPicker(
                   foto: _foto,
@@ -225,15 +290,7 @@ class _Etapa1FormState extends State<_Etapa1Form> {
                   labelText: 'E-mail',
                   prefixIcon: Icon(Icons.email_outlined),
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira seu e-mail';
-                  }
-                  if (!value.contains('@')) {
-                    return 'Por favor, insira um e-mail válido';
-                  }
-                  return null;
-                },
+                validator: _validateEmail,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -242,13 +299,12 @@ class _Etapa1FormState extends State<_Etapa1Form> {
                 decoration: const InputDecoration(
                   labelText: 'WhatsApp',
                   prefixIcon: Icon(Icons.phone_outlined),
+                  hintText: '(99)99999-9999',
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor, insira seu WhatsApp';
-                  }
-                  return null;
-                },
+                inputFormatters: [
+                  _whatsappMaskFormatter,
+                ],
+                validator: _validateWhatsapp,
               ),
               const SizedBox(height: 16),
               TextFormField(
@@ -271,7 +327,7 @@ class _Etapa1FormState extends State<_Etapa1Form> {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _proximo,
-                child: const Text('Próximo'),
+                child: Text(widget.complementoPerfil ? 'Salvar Perfil' : 'Próximo'),
               ),
             ],
           ),
@@ -594,6 +650,94 @@ class _InfoItem extends StatelessWidget {
             child: Text(value),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AguardandoConfirmacaoEmailScreen extends StatefulWidget {
+  final CadastroAguardandoConfirmacaoEmail state;
+  const _AguardandoConfirmacaoEmailScreen({required this.state});
+
+  @override
+  State<_AguardandoConfirmacaoEmailScreen> createState() => _AguardandoConfirmacaoEmailScreenState();
+}
+
+class _AguardandoConfirmacaoEmailScreenState extends State<_AguardandoConfirmacaoEmailScreen> {
+  StreamSubscription<supabase.AuthState>? _authSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSub = supabase.Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final session = data.session;
+      if (session != null && session.user.emailConfirmedAt != null) {
+        // E-mail confirmado! Dispare o evento para avançar o cadastro
+        context.read<CadastroBloc>().add(
+          CadastroConfirmarEmail(widget.state.email, widget.state.senha),
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Confirme seu e-mail')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(Icons.email_outlined, size: 80, color: Colors.deepPurple),
+              const SizedBox(height: 32),
+              const Text(
+                'Quase lá!\n\nEnviamos um link de confirmação para o seu e-mail.\n\nPor favor, confirme seu e-mail antes de continuar.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500, color: Colors.black87),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  context.read<CadastroBloc>().add(
+                    CadastroConfirmarEmail(widget.state.email, widget.state.senha),
+                  );
+                },
+                label: const Text('Já confirmei meu e-mail'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurple,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextButton.icon(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                label: const Text('Voltar para o login'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.deepPurple,
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/models/evento_model.dart';
+import '../../../../shared/services/ingresso_service.dart';
+import '../../../../shared/services/auth_service.dart';
+import '../../../eventos/ingresso_digital_screen.dart';
 
 class TicktScreen extends StatelessWidget {
   final EventoModel evento;
@@ -161,8 +164,54 @@ class TicktScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implementar geração de ingresso
+                      onPressed: () async {
+                        final scaffoldMessenger = ScaffoldMessenger.of(context);
+                        try {
+                          final user = await AuthService().getCurrentUser();
+                          if (user == null) {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Usuário não autenticado.')),
+                            );
+                            return;
+                          }
+                          if (evento.id == null || evento.id!.isEmpty) {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Evento inválido. Tente novamente ou selecione outro evento.')),
+                            );
+                            return;
+                          }
+                          if (user.id.isEmpty) {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Usuário inválido. Faça login novamente.')),
+                            );
+                            return;
+                          }
+                          final ingressoId = await IngressoService().gerarIngressoParaEvento(
+                            eventoId: evento.id!,
+                            compradorId: user.id,
+                            nomeUsuario: user.name ?? user.email,
+                            nomeEvento: evento.titulo,
+                          );
+                          print('[DEBUG] ingressoId retornado: ' + (ingressoId ?? 'null'));
+                          if (ingressoId != null) {
+                            if (context.mounted) {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => IngressoDigitalScreen(ingressoId: ingressoId),
+                                ),
+                              );
+                            }
+                          } else {
+                            scaffoldMessenger.showSnackBar(
+                              const SnackBar(content: Text('Erro ao gerar ingresso.')),
+                            );
+                          }
+                        } catch (e) {
+                          final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
+                          scaffoldMessenger.showSnackBar(
+                            SnackBar(content: Text('Erro: $msg')),
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Theme.of(context).primaryColor,

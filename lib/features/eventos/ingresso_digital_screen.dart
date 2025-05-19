@@ -46,7 +46,7 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
                 padding: const EdgeInsets.all(16),
                 child: _IngressoTicket(
                   codigoQr: ingresso.codigoQr,
-                  numeroIngresso: ingresso.numeroIngresso,
+                  numeroIngresso: ingresso.id,
                   tituloEvento: evento.titulo,
                   local: evento.local,
                   dataInicio: evento.dataInicio,
@@ -80,7 +80,9 @@ class _IngressoTicket extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
     return Container(
+      height: screenHeight * 0.7, // Ocupa 90% da altura da tela
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: const LinearGradient(
@@ -97,14 +99,15 @@ class _IngressoTicket extends StatelessWidget {
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           const Text(
             'MEU INGRESSO ELETRÔNICO',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -114,7 +117,7 @@ class _IngressoTicket extends StatelessWidget {
             child: QrImageView(
               data: codigoQr,
               version: QrVersions.auto,
-              size: 180,
+              size: 240,
               eyeStyle: const QrEyeStyle(
                 eyeShape: QrEyeShape.circle,
                 color: Colors.red,
@@ -126,50 +129,50 @@ class _IngressoTicket extends StatelessWidget {
               backgroundColor: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Text(
             'Nº $numeroIngresso',
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
+            padding: const EdgeInsets.symmetric(vertical: 20),
             child: Row(
               children: [
                 Expanded(child: Divider(color: Colors.white54, thickness: 1, endIndent: 8)),
-                const Icon(Icons.circle, color: Colors.white54, size: 12),
+                const Icon(Icons.circle, color: Colors.white54, size: 14),
                 Expanded(child: Divider(color: Colors.white54, thickness: 1, indent: 8)),
               ],
             ),
           ),
           Text(
             tituloEvento,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.location_on, color: Colors.white, size: 18),
-              const SizedBox(width: 4),
-              Text(local, style: const TextStyle(color: Colors.white)),
+              const Icon(Icons.location_on, color: Colors.white, size: 20),
+              const SizedBox(width: 6),
+              Text(local, style: const TextStyle(color: Colors.white, fontSize: 18)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.calendar_today, color: Colors.white, size: 18),
-              const SizedBox(width: 4),
-              Text(DateFormat('dd/MM/yyyy').format(dataInicio), style: const TextStyle(color: Colors.white)),
-              const SizedBox(width: 16),
-              const Icon(Icons.access_time, color: Colors.white, size: 18),
-              const SizedBox(width: 4),
-              Text(DateFormat('HH:mm').format(dataInicio), style: const TextStyle(color: Colors.white)),
+              const Icon(Icons.calendar_today, color: Colors.white, size: 20),
+              const SizedBox(width: 6),
+              Text(DateFormat('dd/MM/yyyy').format(dataInicio), style: const TextStyle(color: Colors.white, fontSize: 18)),
+              const SizedBox(width: 20),
+              const Icon(Icons.access_time, color: Colors.white, size: 20),
+              const SizedBox(width: 6),
+              Text(DateFormat('HH:mm').format(dataInicio), style: const TextStyle(color: Colors.white, fontSize: 18)),
             ],
           ),
-          const SizedBox(height: 16),
-          Image.asset(logoPath, height: 48), // Logo do evento
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          Image.asset(logoPath, height: 80), // Logo do evento (aumentado)
+          const SizedBox(height: 24),
         ],
       ),
     );

@@ -12,4 +12,11 @@ class AuthUnauthenticated extends AuthState {}
 class AuthError extends AuthState {
   final String message;
   AuthError(this.message);
+}
+class AuthIncompleteProfile extends AuthState {
+  final UserModel user;
+  AuthIncompleteProfile(this.user);
+
+  @override
+  List<Object?> get props => [user];
 } 

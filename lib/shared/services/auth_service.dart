@@ -58,7 +58,7 @@ class AuthService {
       );
       final user = response.user;
       if (user == null) return null;
-      print('Usuário autenticado: [32m${user.id}[0m');
+      print('Usuário autenticado: \x1B[32m[32m${user.id}\x1B[0m');
       final perfil = await _supabase
           .from('perfis')
           .select()
@@ -66,7 +66,10 @@ class AuthService {
           .maybeSingle();
       print('Perfil retornado: $perfil');
       if (perfil == null) {
-        throw Exception('Perfil não encontrado para este usuário.');
+        return UserModel(
+          id: user.id,
+          email: user.email ?? '',
+        );
       }
       return UserModel.fromJson(perfil);
     } catch (e) {

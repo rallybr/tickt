@@ -213,6 +213,41 @@ class CadastroService {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('Usuário não autenticado');
 
+    if (nome.trim().isEmpty) {
+      throw Exception('O nome é obrigatório.');
+    }
+    if (whatsapp.trim().isEmpty) {
+      throw Exception('O WhatsApp é obrigatório.');
+    }
+    if (fotoUrl.trim().isEmpty) {
+      throw Exception('A foto é obrigatória.');
+    }
+    if (igrejaId.trim().isEmpty) {
+      throw Exception('A igreja é obrigatória.');
+    }
+
+    // Verificar duplicidade de email
+    final emailExists = await _supabase
+        .from('perfis')
+        .select('id')
+        .eq('email', email)
+        .neq('id', userId)
+        .maybeSingle();
+    if (emailExists != null) {
+      throw Exception('Já existe um cadastro com este e-mail.');
+    }
+
+    // Verificar duplicidade de whatsapp
+    final whatsappExists = await _supabase
+        .from('perfis')
+        .select('id')
+        .eq('whatsapp', whatsapp)
+        .neq('id', userId)
+        .maybeSingle();
+    if (whatsappExists != null) {
+      throw Exception('Já existe um cadastro com este WhatsApp.');
+    }
+
     await _supabase.from('perfis').insert({
       'id': userId,
       'nome': nome,

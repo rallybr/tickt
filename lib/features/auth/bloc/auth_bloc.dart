@@ -60,13 +60,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         email: event.email,
         password: event.password,
       );
-      if (user != null) {
-        print('Login bem-sucedido!');
-        emit(AuthAuthenticated(user));
-      } else {
-        print('Usuário não encontrado após login.');
-        emit(AuthError('Usuário não encontrado ou perfil não cadastrado.'));
+      if (user == null) {
+        print('Usuário ou senha inválidos.');
+        emit(AuthError('Usuário ou senha inválidos.'));
+        return;
       }
+      if (user.name == null || user.name!.isEmpty || user.whatsapp == null || user.whatsapp!.isEmpty) {
+        emit(AuthIncompleteProfile(user));
+        return;
+      }
+      print('Login bem-sucedido!');
+      emit(AuthAuthenticated(user));
     } on supabase.AuthException catch (e) {
       print('Erro de autenticação: [31m${e.message}[0m');
       emit(AuthError(_mapAuthError(e.message)));
@@ -82,11 +86,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     try {
-      final user = await _authService.signUp(
+      final response = await _authService.signUp(
         email: event.email,
         password: event.password,
       );
-      emit(AuthAuthenticated(user));
+      
+      if (response.user == null) {
+        emit(AuthError('Erro ao criar usuário'));
+        return;
+      }
+
+      // Create a basic UserModel from the auth response
+      final userModel = UserModel(
+        id: response.user!.id,
+        email: response.user!.email!,
+      );
+      
+      // Após o sign up, já autentica e direciona para completar o perfil
+      emit(AuthIncompleteProfile(userModel));
     } on supabase.AuthException catch (e) {
       emit(AuthError(_mapAuthError(e.message)));
     } catch (e) {

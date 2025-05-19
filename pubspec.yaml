@@ -28,6 +28,8 @@ dependencies:
   audioplayers: ^5.2.1
   fl_chart: ^0.66.1
   permission_handler: ^11.3.0
+  shared_preferences: ^2.5.3
+  mask_text_input_formatter: ^2.9.0
 
 dev_dependencies:
   flutter_test:

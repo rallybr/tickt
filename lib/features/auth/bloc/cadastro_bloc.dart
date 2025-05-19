@@ -5,6 +5,9 @@ import 'package:equatable/equatable.dart';
 import '../../../shared/services/cadastro_service.dart';
 import '../../../shared/models/models.dart';
 import '../../../shared/services/auth_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart' as supabase;
 
 // Events
 abstract class CadastroEvent extends Equatable {
@@ -250,7 +253,14 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
       final userId = authResponse.user?.id;
       if (userId == null) throw Exception('Erro ao criar usuário. Tente novamente.');
 
-      // Emitir estado aguardando confirmação de e-mail
+      // Salvar dados pessoais localmente
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('cadastro_nome', event.nome);
+      await prefs.setString('cadastro_email', event.email);
+      await prefs.setString('cadastro_whatsapp', event.whatsapp);
+      await prefs.setString('cadastro_senha', event.senha);
+      await prefs.setString('cadastro_foto', base64Encode(event.foto));
+
       emit(CadastroAguardandoConfirmacaoEmail(
         email: event.email,
         senha: event.senha,
@@ -258,6 +268,12 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
         whatsapp: event.whatsapp,
         foto: event.foto,
       ));
+    } on supabase.AuthException catch (e) {
+      if (e.message.contains('User already registered') || e.message.contains('email already in use') || e.message.contains('Já existe um usuário com este e-mail')) {
+        emit(CadastroError('Este e-mail já está cadastrado em nossa base de dados. Por favor, utilize outro e-mail ou faça login.'));
+      } else {
+        emit(CadastroError(e.message));
+      }
     } catch (e, stackTrace) {
       emit(CadastroError(e.toString()));
     }
@@ -270,7 +286,7 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
     if (state is CadastroEtapa2) {
       final currentState = state as CadastroEtapa2;
       try {
-        print('Buscando blocos para o estado: ${event.estado.nome}');
+        print('Buscando blocos para o estado: [32m${event.estado.nome}[0m');
         final blocos = await _cadastroService.getBlocosPorEstado(event.estado.id);
         print('Blocos encontrados: ${blocos.length}');
 
@@ -290,8 +306,11 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
           estados: currentState.estados,
           estadoSelecionado: event.estado,
           blocos: blocos,
+          blocoSelecionado: null,
           regioes: const [],
+          regiaoSelecionada: null,
           igrejas: const [],
+          igrejaSelecionada: null,
         ));
       } catch (e, stackTrace) {
         print('Erro ao carregar blocos: $e');
@@ -330,7 +349,9 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
           blocos: currentState.blocos,
           blocoSelecionado: event.bloco,
           regioes: regioes,
+          regiaoSelecionada: null,
           igrejas: const [],
+          igrejaSelecionada: null,
         ));
       } catch (e, stackTrace) {
         print('Erro ao carregar regiões: $e');
@@ -371,6 +392,7 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
           regioes: currentState.regioes,
           regiaoSelecionada: event.regiao,
           igrejas: igrejas,
+          igrejaSelecionada: null,
         ));
       } catch (e, stackTrace) {
         print('Erro ao carregar igrejas: $e');
@@ -420,6 +442,13 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
           fotoUrl: fotoUrl,
           igrejaId: currentState.igreja.id,
         );
+        // Limpar dados do SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('cadastro_nome');
+        await prefs.remove('cadastro_email');
+        await prefs.remove('cadastro_whatsapp');
+        await prefs.remove('cadastro_senha');
+        await prefs.remove('cadastro_foto');
         emit(CadastroSuccess());
       } catch (e) {
         emit(CadastroError(e.toString()));
@@ -438,17 +467,47 @@ class CadastroBloc extends Bloc<CadastroEvent, CadastroState> {
         password: event.senha,
       );
       final estados = await _cadastroService.getEstados();
-      emit(CadastroEtapa2(
-        nome: '', // O nome, whatsapp e foto devem ser recuperados do estado anterior na tela
-        email: event.email,
-        whatsapp: '',
-        senha: event.senha,
-        foto: Uint8List(0),
-        estados: estados,
-        blocos: const [],
-        regioes: const [],
-        igrejas: const [],
-      ));
+
+      if (state is CadastroAguardandoConfirmacaoEmail) {
+        final aguardando = state as CadastroAguardandoConfirmacaoEmail;
+        emit(CadastroEtapa2(
+          nome: aguardando.nome,
+          email: aguardando.email,
+          whatsapp: aguardando.whatsapp,
+          senha: aguardando.senha,
+          foto: aguardando.foto,
+          estados: estados,
+          blocos: const [],
+          regioes: const [],
+          igrejas: const [],
+        ));
+      } else {
+        // Recuperar dados do SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final nome = prefs.getString('cadastro_nome') ?? '';
+        final email = prefs.getString('cadastro_email') ?? event.email;
+        final whatsapp = prefs.getString('cadastro_whatsapp') ?? '';
+        final senha = prefs.getString('cadastro_senha') ?? event.senha;
+        final fotoStr = prefs.getString('cadastro_foto');
+        final foto = fotoStr != null ? Uint8List.fromList(base64Decode(fotoStr)) : Uint8List(0);
+
+        if (nome.isEmpty || whatsapp.isEmpty || foto.isEmpty) {
+          emit(CadastroError('Não foi possível recuperar seus dados pessoais. Por favor, reinicie o cadastro e preencha todos os campos novamente.'));
+          return;
+        }
+
+        emit(CadastroEtapa2(
+          nome: nome,
+          email: email,
+          whatsapp: whatsapp,
+          senha: senha,
+          foto: foto,
+          estados: estados,
+          blocos: const [],
+          regioes: const [],
+          igrejas: const [],
+        ));
+      }
     } catch (e) {
       emit(CadastroError('E-mail ainda não confirmado ou erro ao autenticar. Por favor, confirme seu e-mail e tente novamente.'));
     }
