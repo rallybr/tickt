@@ -8,10 +8,12 @@ import '../../../eventos/ingresso_digital_screen.dart';
 
 class TicktScreen extends StatelessWidget {
   final EventoModel evento;
+  final bool detalhesSomente;
 
   const TicktScreen({
     super.key,
     required this.evento,
+    this.detalhesSomente = false,
   });
 
   @override
@@ -164,7 +166,7 @@ class TicktScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () async {
+                      onPressed: detalhesSomente || evento.dataInicio.isBefore(DateTime.now()) ? null : () async {
                         final scaffoldMessenger = ScaffoldMessenger.of(context);
                         try {
                           final user = await AuthService().getCurrentUser();
@@ -208,8 +210,37 @@ class TicktScreen extends StatelessWidget {
                           }
                         } catch (e) {
                           final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
+                          final isLimite = msg.contains('limite de 3 ingressos');
                           scaffoldMessenger.showSnackBar(
-                            SnackBar(content: Text('Erro: $msg')),
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  if (isLimite)
+                                    const Icon(Icons.error_outline, color: Colors.white, size: 28),
+                                  if (isLimite)
+                                    const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      isLimite
+                                        ? 'Você já atingiu o limite de 3 ingressos para este evento.'
+                                        : 'Erro: $msg',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: isLimite ? Colors.redAccent : null,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              duration: const Duration(seconds: 4),
+                            ),
                           );
                         }
                       },
@@ -221,9 +252,11 @@ class TicktScreen extends StatelessWidget {
                         ),
                         elevation: 2,
                       ),
-                      child: const Text(
-                        'Gerar Meu Ingresso',
-                        style: TextStyle(
+                      child: Text(
+                        evento.dataInicio.isBefore(DateTime.now()) || detalhesSomente
+                          ? 'Evento Encerrado'
+                          : 'Gerar Meu Ingresso',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),

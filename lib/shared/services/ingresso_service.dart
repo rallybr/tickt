@@ -36,6 +36,16 @@ class IngressoService {
     required String nomeUsuario,
     required String nomeEvento,
   }) async {
+    // Verificar limite de 3 ingressos por usuário por evento
+    final ingressosUsuario = await _supabase
+        .from('ingressos')
+        .select('id')
+        .eq('evento_id', eventoId)
+        .eq('comprador_id', compradorId);
+    if (ingressosUsuario != null && ingressosUsuario is List && ingressosUsuario.length >= 3) {
+      throw Exception('Você já atingiu o limite de 3 ingressos para este evento.');
+    }
+
     // Buscar o primeiro tipo de ingresso disponível para o evento
     var tipos = await _supabase
         .from('tipos_ingresso')
@@ -121,6 +131,17 @@ class IngressoService {
         .select()
         .eq('comprador_id', userId)
         .order('data_compra', ascending: false);
+    return (ingressosResp as List)
+        .map((json) => IngressoModel.fromJson(json))
+        .toList();
+  }
+
+  Future<List<IngressoModel>> buscarIngressosDoEvento(String eventoId) async {
+    final ingressosResp = await _supabase
+        .from('ingressos')
+        .select()
+        .eq('evento_id', eventoId)
+        .order('data_compra', ascending: true);
     return (ingressosResp as List)
         .map((json) => IngressoModel.fromJson(json))
         .toList();

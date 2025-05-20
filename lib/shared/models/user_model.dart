@@ -5,6 +5,7 @@ class UserModel {
   final String? whatsapp;
   final String? photoUrl;
   final String? igrejaId;
+  final String? nivel;
 
   UserModel({
     required this.id,
@@ -13,6 +14,7 @@ class UserModel {
     this.whatsapp,
     this.photoUrl,
     this.igrejaId,
+    this.nivel,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class UserModel {
       whatsapp: json['whatsapp'],
       photoUrl: json['foto_url'],
       igrejaId: json['igreja_id'],
+      nivel: json['nivel'],
     );
   }
 
@@ -34,6 +37,7 @@ class UserModel {
       'whatsapp': whatsapp,
       'foto_url': photoUrl,
       'igreja_id': igrejaId,
+      'nivel': nivel,
     };
   }
 } 

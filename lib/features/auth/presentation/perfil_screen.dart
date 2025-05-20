@@ -57,7 +57,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Meu Perfil'),
+          title: Container(
+            child: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),

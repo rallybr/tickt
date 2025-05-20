@@ -5,6 +5,7 @@ class IngressoModel {
   final String status;
   final DateTime dataCompra;
   final String eventoId;
+  final String compradorId;
 
   IngressoModel({
     required this.id,
@@ -13,6 +14,7 @@ class IngressoModel {
     required this.status,
     required this.dataCompra,
     required this.eventoId,
+    required this.compradorId,
   });
 
   factory IngressoModel.fromJson(Map<String, dynamic> json) {
@@ -23,6 +25,7 @@ class IngressoModel {
       status: json['status'] ?? '',
       dataCompra: DateTime.parse(json['data_compra'] ?? json['created_at']),
       eventoId: json['evento_id'] ?? '',
+      compradorId: json['comprador_id'] ?? '',
     );
   }
 } 

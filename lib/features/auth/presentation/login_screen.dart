@@ -40,6 +40,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return BackgroundImage(
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Container(
+            child: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
+          ),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
         body: BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthError) {

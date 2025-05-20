@@ -245,7 +245,7 @@ class _Etapa1FormState extends State<_Etapa1Form> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: Text(widget.complementoPerfil ? 'Completar Perfil' : 'Cadastro - Etapa 1'),
+          title: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -378,7 +378,7 @@ class _Etapa2Form extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Cadastro - Etapa 2'),
+          title: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -551,7 +551,7 @@ class _Etapa3Form extends StatelessWidget {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Cadastro - Etapa 3'),
+          title: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
@@ -703,7 +703,9 @@ class _AguardandoConfirmacaoEmailScreenState extends State<_AguardandoConfirmaca
     return BackgroundImage(
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        appBar: AppBar(title: const Text('Confirme seu e-mail')),
+        appBar: AppBar(
+          title: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),

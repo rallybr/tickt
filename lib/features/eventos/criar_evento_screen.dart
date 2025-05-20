@@ -144,7 +144,9 @@ class _CriarEventoScreenState extends State<CriarEventoScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Criar Evento'),
+          title: Container(
+            child: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),

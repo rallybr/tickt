@@ -11,6 +11,10 @@ import '../../shared/widgets/background_image.dart';
 import 'dart:async';
 import '../../shared/widgets/flip_countdown.dart';
 import '../auth/presentation/perfil_screen.dart';
+import '../eventos/leitor_qr_screen.dart';
+import '../eventos/estatisticas_screen.dart';
+import '../eventos/sorteio_screen.dart';
+import '../../shared/models/user_model.dart';
 // Importe outras telas conforme necessário
 
 class HomeScreen extends StatefulWidget {
@@ -26,11 +30,19 @@ class _HomeScreenState extends State<HomeScreen> {
   List<EventoModel> _eventos = [];
   Timer? _autoPlayTimer;
   late Future<List<EventoModel>> _eventosFuture;
+  final int _infiniteScrollOffset = 10000;
 
   @override
   void initState() {
     super.initState();
     _eventosFuture = EventoService().listarEventos();
+    // Inicializa o carrossel no meio do range virtual para permitir rolagem infinita para ambos os lados
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_eventos.isNotEmpty) {
+        _pageController.jumpToPage(_infiniteScrollOffset * _eventos.length);
+        _currentPage = _infiniteScrollOffset * _eventos.length;
+      }
+    });
   }
 
   @override
@@ -46,14 +58,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _autoPlayTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
       if (_pageController.hasClients && _eventos.isNotEmpty) {
         int nextPage = _currentPage + 1;
-        if (nextPage >= _eventos.length) {
-          nextPage = 0;
-        }
         _pageController.animateToPage(
           nextPage,
           duration: const Duration(milliseconds: 500),
           curve: Curves.easeInOut,
         );
+        _currentPage = nextPage;
       }
     });
   }
@@ -64,92 +74,124 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Tickt'),
+          title: Container(
+            child: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
-        drawer: Drawer(
-          child: ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              const DrawerHeader(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Color(0xFF833ab4),
-                      Color(0xFFfd1d1d),
-                      Color(0xFFfcb045),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                ),
-                child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
-              ),
-              ListTile(
-                leading: const Icon(Icons.event),
-                title: const Text('Criar Evento'),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CriarEventoScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.confirmation_num),
-                title: const Text('Gerar Ingresso'),
-                onTap: () {
-                  // Navegar para tela de gerar ingresso
-                  // (Removido: GerarIngressoScreen)
-                  // O fluxo correto é pelo botão na tela de detalhes do evento
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Acesse um evento e clique em "Gerar Meu Ingresso".')),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.confirmation_num),
-                title: const Text('Ver Ingresso Exemplo'),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => IngressoDigitalScreen(ingressoId: '6b84cc6c-df85-40a1-8624-f1d1b31d87e7'),
+        drawer: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            UserModel? user;
+            if (state is AuthAuthenticated) {
+              user = state.user as UserModel;
+            }
+            final nivel = user?.nivel ?? 'usuario';
+            return Drawer(
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  const DrawerHeader(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Color(0xFF833ab4),
+                          Color(0xFFfd1d1d),
+                          Color(0xFFfcb045),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                     ),
-                  );
-                },
+                    child: Text('Menu', style: TextStyle(color: Colors.white, fontSize: 24)),
+                  ),
+                  if (nivel == 'adm') ...[
+                    ListTile(
+                      leading: const Icon(Icons.qr_code_scanner),
+                      title: const Text('Ler QR Code'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const LeitorQrScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.celebration),
+                      title: const Text('Sorteio'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const SorteioScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.event),
+                      title: const Text('Criar Evento'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const CriarEventoScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.bar_chart),
+                      title: const Text('Estatísticas'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const EstatisticasScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.person),
+                      title: const Text('Meu Perfil'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const PerfilScreen()),
+                        );
+                      },
+                    ),
+                  ] else if (nivel == 'colaborador') ...[
+                    ListTile(
+                      leading: const Icon(Icons.qr_code_scanner),
+                      title: const Text('Ler QR Code'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const LeitorQrScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.bar_chart),
+                      title: const Text('Estatísticas'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const EstatisticasScreen()),
+                        );
+                      },
+                    ),
+                  ] else ...[
+                    ListTile(
+                      leading: const Icon(Icons.person),
+                      title: const Text('Meu Perfil'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const PerfilScreen()),
+                        );
+                      },
+                    ),
+                  ],
+                  ListTile(
+                    leading: const Icon(Icons.logout),
+                    title: const Text('Logout'),
+                    onTap: () {
+                      context.read<AuthBloc>().add(AuthSignOutRequested());
+                    },
+                  ),
+                ],
               ),
-              ListTile(
-                leading: const Icon(Icons.person),
-                title: const Text('Meu Perfil'),
-                onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const PerfilScreen()),
-                  );
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.login),
-                title: const Text('Login'),
-                onTap: () {
-                  // Navegar para tela de login
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
-                onTap: () {
-                  context.read<AuthBloc>().add(AuthSignOutRequested());
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.app_registration),
-                title: const Text('Cadastre-se'),
-                onTap: () {
-                  // Navegar para tela de cadastro
-                },
-              ),
-            ],
-          ),
+            );
+          },
         ),
         body: SafeArea(
           child: FutureBuilder<List<EventoModel>>(
@@ -184,90 +226,134 @@ class _HomeScreenState extends State<HomeScreen> {
                     if (eventosFuturos.isNotEmpty)
                     SizedBox(
                       height: 320,
-                      child: PageView.builder(
-                        controller: _pageController,
-                        itemCount: eventosFuturos.length,
-                        onPageChanged: (index) {
-                          setState(() {
-                            _currentPage = index;
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          final evento = eventosFuturos[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Container(
-                                color: Colors.white.withOpacity(0.15),
-                                child: Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    if (evento.bannerUrl.isNotEmpty)
-                                      Image.network(
-                                        evento.bannerUrl,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stack) => Container(color: Colors.grey[300]),
-                                      ),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          colors: [Colors.black.withOpacity(0.5), Colors.transparent],
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
+                      child: Stack(
+                        children: [
+                          PageView.builder(
+                            controller: _pageController,
+                            itemCount: null, // infinito
+                            onPageChanged: (index) {
+                              setState(() {
+                                _currentPage = index;
+                              });
+                            },
+                            itemBuilder: (context, index) {
+                              final evento = eventosFuturos[index % eventosFuturos.length];
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Container(
+                                    color: Colors.white.withOpacity(0.15),
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        if (evento.bannerUrl.isNotEmpty)
+                                          Image.network(
+                                            evento.bannerUrl,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stack) => Container(color: Colors.grey[300]),
+                                          ),
+                                        Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              colors: [Colors.black.withOpacity(0.5), Colors.transparent],
+                                              begin: Alignment.bottomCenter,
+                                              end: Alignment.topCenter,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      left: 16,
-                                      right: 16,
-                                      bottom: 24,
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            evento.titulo,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 22,
-                                              fontWeight: FontWeight.bold,
-                                              shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            evento.local,
-                                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            _formatarData(evento.dataInicio),
-                                            style: const TextStyle(color: Colors.white, fontSize: 15),
-                                          ),
-                                          const SizedBox(height: 12),
-                                          ElevatedButton(
-                                            onPressed: () {
-                                              Navigator.of(context).push(
-                                                MaterialPageRoute(
-                                                  builder: (_) => TicktScreen(evento: evento),
+                                        Positioned(
+                                          left: 16,
+                                          right: 16,
+                                          bottom: 24,
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.end,
+                                            children: [
+                                              // Informações do evento à esquerda
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text(
+                                                      evento.titulo,
+                                                      style: const TextStyle(
+                                                        color: Colors.white,
+                                                        fontSize: 22,
+                                                        fontWeight: FontWeight.bold,
+                                                        shadows: [Shadow(color: Colors.black54, blurRadius: 8)],
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      evento.local,
+                                                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w500),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    Text(
+                                                      _formatarData(evento.dataInicio),
+                                                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                                                    ),
+                                                  ],
                                                 ),
-                                              );
-                                            },
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF833ab4),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                            ),
-                                            child: const Text('Participar do evento', style: TextStyle(color: Colors.white)),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              // Botão à direita
+                                              ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder: (_) => TicktScreen(evento: evento),
+                                                    ),
+                                                  );
+                                                },
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF833ab4),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                ),
+                                                child: const Text('Participar do evento', style: TextStyle(color: Colors.white)),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          // Sombra 3D na parte inferior
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: IgnorePointer(
+                              child: Container(
+                                height: 32,
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.transparent,
+                                      Color.fromRGBO(0, 0, 0, 0.18),
+                                      Color.fromRGBO(0, 0, 0, 0.28),
+                                    ],
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color.fromRGBO(0, 0, 0, 0.22),
+                                      blurRadius: 16,
+                                      spreadRadius: 2,
+                                      offset: Offset(0, 8),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        ],
                       ),
                     ),
                     // Título acima do countdown
@@ -340,7 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                         title: Text(evento.titulo),
                                         subtitle: Text(_formatarData(evento.dataInicio)),
                                         onTap: () {
-                                          // Navegar para detalhes do evento
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) => TicktScreen(evento: evento, detalhesSomente: true),
+                                            ),
+                                          );
                                         },
                                       ),
                                     );

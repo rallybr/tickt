@@ -29,7 +29,7 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('Confirmação de ingresso'),
+          title: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
           backgroundColor: const Color(0xFFd4145a),
         ),
         body: FutureBuilder<Map<String, dynamic>>(
