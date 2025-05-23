@@ -9,6 +9,12 @@ import '../../shared/widgets/background_image.dart';
 import '../../shared/utils/responsive_utils.dart';
 import '../../shared/widgets/ingresso_card.dart';
 import '../../shared/widgets/ingresso_ticket.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 class IngressoDigitalScreen extends StatefulWidget {
   final String ingressoId;
@@ -20,6 +26,7 @@ class IngressoDigitalScreen extends StatefulWidget {
 
 class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
   late Future<Map<String, dynamic>> _future;
+  final GlobalKey _ticketKey = GlobalKey();
 
   @override
   void initState() {
@@ -59,17 +66,32 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        IngressoTicket(
-                          titulo: 'Confirmação de ingresso',
-                          numeroIngresso: ingresso.numeroIngresso,
-                          nomeEvento: evento.titulo,
-                          participante: participante,
-                          data: dataFormatada,
-                          hora: horaFormatada,
-                          qrData: ingresso.codigoQr ?? '',
-                          logoUrl: evento.logoEvento ?? '',
+                        RepaintBoundary(
+                          key: _ticketKey,
+                          child: IngressoTicket(
+                            titulo: 'Confirmação de ingresso',
+                            numeroIngresso: ingresso.numeroIngresso,
+                            nomeEvento: evento.titulo,
+                            participante: participante,
+                            data: dataFormatada,
+                            hora: horaFormatada,
+                            qrData: ingresso.codigoQr ?? '',
+                            logoUrl: evento.logoEvento ?? '',
+                          ),
                         ),
                         const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: _downloadIngresso,
+                          icon: const Icon(Icons.download),
+                          label: const Text('Baixar ingresso'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Theme.of(context).primaryColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -80,6 +102,47 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _downloadIngresso() async {
+    try {
+      // Solicita permissão correta conforme a versão do Android
+      PermissionStatus status;
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        if (androidInfo.version.sdkInt >= 33) {
+          status = await Permission.photos.request();
+        } else {
+          status = await Permission.storage.request();
+        }
+      } else {
+        status = await Permission.storage.request();
+      }
+      if (!status.isGranted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permissão para salvar imagens negada.')),
+        );
+        return;
+      }
+      RenderRepaintBoundary boundary = _ticketKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+      final result = await ImageGallerySaverPlus.saveImage(pngBytes, quality: 100, name: 'ingresso_${DateTime.now().millisecondsSinceEpoch}');
+      if (result['isSuccess'] == true || result['isSuccess'] == 1) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ingresso salvo na galeria!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar ingresso.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao salvar ingresso: $e')),
+      );
+    }
   }
 
   Widget _buildInfoRow(BuildContext context, String label, String value) {

@@ -13,6 +13,14 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/rendering.dart';
+import 'package:intl/intl.dart';
+import '../../../shared/widgets/ingresso_ticket.dart';
+import 'dart:ui' as ui;
+import 'dart:async';
 
 class PerfilScreen extends StatefulWidget {
   const PerfilScreen({super.key});
@@ -26,6 +34,8 @@ class _PerfilScreenState extends State<PerfilScreen> {
   String? _nomeIgreja;
   List<IngressoModel> _ingressos = [];
   bool _loading = true;
+  final Map<String, GlobalKey> _ingressoKeys = {};
+  final Map<String, EventoModel> _eventosMap = {};
 
   @override
   void initState() {
@@ -43,10 +53,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
     final ingressos = user != null
         ? await IngressoService().buscarIngressosDoUsuario(user.id)
         : <IngressoModel>[];
+    // Buscar todos os eventos e montar o mapa
+    final eventos = await EventoService().listarEventos();
+    final eventosMap = {for (var e in eventos) e.id!: e};
+    // Inicializa uma key para cada ingresso
+    for (final ingresso in ingressos) {
+      _ingressoKeys[ingresso.id] = GlobalKey();
+    }
     setState(() {
       _user = user;
       _nomeIgreja = nomeIgreja;
       _ingressos = ingressos;
+      _eventosMap.clear();
+      _eventosMap.addAll(eventosMap);
       _loading = false;
     });
   }
@@ -115,8 +134,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
                             children: [
-                              const Icon(Icons.person, color: Colors.white, size: 22),
+                              Icon(Icons.person, color: Colors.white, size: 24),
                               const SizedBox(width: 8),
                               Text(
                                 _user?.name ?? '',
@@ -124,7 +145,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 1),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -182,46 +203,84 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     const SizedBox(height: 16),
                     if (_ingressos.isEmpty)
                       const Text('Nenhum ingresso gerado ainda.', style: TextStyle(color: Colors.white)),
-                    ..._ingressos.map((ingresso) => Card(
-                          color: Colors.white.withOpacity(0.92),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          elevation: 4,
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          child: ListTile(
-                            leading: const Icon(Icons.confirmation_num, color: Color(0xFF833ab4)),
-                            title: Text('Ingresso Nº ${ingresso.numeroIngresso}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('Status: ${ingresso.status}\nData: ${ingresso.dataCompra.day.toString().padLeft(2, '0')}/${ingresso.dataCompra.month.toString().padLeft(2, '0')}/${ingresso.dataCompra.year}'),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.visibility, color: Color(0xFF833ab4)),
-                                  tooltip: 'Visualizar',
-                                  onPressed: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => IngressoDigitalScreen(ingressoId: ingresso.id),
-                                      ),
-                                    );
-                                  },
+                    ..._ingressos.map((ingresso) => Stack(
+                          children: [
+                            Card(
+                              color: Colors.white.withOpacity(0.92),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(vertical: 2),
+                              child: ListTile(
+                                leading: const Icon(Icons.confirmation_num, color: Color(0xFF833ab4)),
+                                title: Text('Ingresso Nº ${ingresso.numeroIngresso}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('Status: ${ingresso.status}\nData: ${ingresso.dataCompra.day.toString().padLeft(2, '0')}/${ingresso.dataCompra.month.toString().padLeft(2, '0')}/${ingresso.dataCompra.year}'),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.visibility, color: Color(0xFF833ab4)),
+                                      tooltip: 'Visualizar',
+                                      onPressed: () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) => IngressoDigitalScreen(ingressoId: ingresso.id),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.download, color: Color(0xFF833ab4)),
+                                      tooltip: 'Baixar',
+                                      onPressed: () async {
+                                        await _baixarIngressoCompleto(context, ingresso);
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(Icons.share, color: Color(0xFF833ab4)),
+                                      tooltip: 'Compartilhar',
+                                      onPressed: () async {
+                                        await _compartilharIngresso(context, ingresso);
+                                      },
+                                    ),
+                                  ],
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.download, color: Color(0xFF833ab4)),
-                                  tooltip: 'Baixar',
-                                  onPressed: () async {
-                                    await _baixarIngresso(context, ingresso);
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.share, color: Color(0xFF833ab4)),
-                                  tooltip: 'Compartilhar',
-                                  onPressed: () async {
-                                    await _compartilharIngresso(context, ingresso);
-                                  },
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
+                            if (_eventosMap[ingresso.eventoId] != null)
+                              Positioned(
+                                top: -1000,
+                                child: Container(
+                                  width: 350,
+                                  height: 600,
+                                  child: Opacity(
+                                    opacity: 0.01,
+                                    child: IgnorePointer(
+                                      child: RepaintBoundary(
+                                        key: _ingressoKeys[ingresso.id],
+                                        child: Builder(
+                                          builder: (context) {
+                                            final evento = _eventosMap[ingresso.eventoId]!;
+                                            final participante = ingresso.nomeUsuario ?? 'Não informado';
+                                            final dataFormatada = DateFormat('dd "de" MMMM "de" yyyy', 'pt_BR').format(evento.dataInicio);
+                                            final horaFormatada = DateFormat('HH:mm').format(evento.dataInicio) + 'h';
+                                            return IngressoTicket(
+                                              titulo: 'Confirmação de ingresso',
+                                              numeroIngresso: ingresso.numeroIngresso,
+                                              nomeEvento: evento.titulo,
+                                              participante: participante,
+                                              data: dataFormatada,
+                                              hora: horaFormatada,
+                                              qrData: ingresso.codigoQr ?? '',
+                                              logoUrl: evento.logoEvento ?? '',
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         )),
                   ],
                 ),
@@ -230,50 +289,48 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
-  Future<void> _baixarIngresso(BuildContext context, IngressoModel ingresso) async {
+  Future<void> _baixarIngressoCompleto(BuildContext context, IngressoModel ingresso) async {
     try {
-      if (ingresso.codigoQr == null) {
+      // Permissão
+      PermissionStatus status;
+      if (Theme.of(context).platform == TargetPlatform.android) {
+        final androidInfo = await DeviceInfoPlugin().androidInfo;
+        if (androidInfo.version.sdkInt >= 33) {
+          status = await Permission.photos.request();
+        } else {
+          status = await Permission.storage.request();
+        }
+      } else {
+        status = await Permission.storage.request();
+      }
+      if (!status.isGranted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('QR Code não disponível para este ingresso'),
-          ),
+          const SnackBar(content: Text('Permissão para salvar imagens negada.')),
         );
         return;
       }
-
-      final tempDir = await getTemporaryDirectory();
-      final file = File('${tempDir.path}/ingresso_${ingresso.numeroIngresso}.png');
-      
-      final qrValidationResult = QrValidator.validate(
-        data: ingresso.codigoQr!,
-        version: QrVersions.auto,
-        errorCorrectionLevel: QrErrorCorrectLevel.L,
-      );
-      
-      if (qrValidationResult.status == QrValidationStatus.valid) {
-        final painter = QrPainter.withQr(
-          qr: qrValidationResult.qrCode!,
-          color: const Color(0xFF833ab4),
-          emptyColor: Colors.white,
-          gapless: true,
-        );
-        final imageData = await painter.toImageData(300);
-        if (imageData == null) return;
-        final buffer = imageData.buffer;
-        await file.writeAsBytes(
-          buffer.asUint8List(imageData.offsetInBytes, imageData.lengthInBytes),
-        );
+      // Garante que o widget foi renderizado
+      await WidgetsBinding.instance.endOfFrame;
+      await Future.delayed(const Duration(milliseconds: 200));
+      final key = _ingressoKeys[ingresso.id];
+      if (key == null || key.currentContext == null) throw Exception('Erro ao acessar o ingresso para download.');
+      final boundary = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      Uint8List pngBytes = byteData!.buffer.asUint8List();
+      final result = await ImageGallerySaverPlus.saveImage(pngBytes, quality: 100, name: 'ingresso_${ingresso.numeroIngresso}_${DateTime.now().millisecondsSinceEpoch}');
+      if (result['isSuccess'] == true || result['isSuccess'] == 1) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Ingresso salvo na galeria/arquivos temporários.'),
-          ),
+          const SnackBar(content: Text('Ingresso salvo na galeria!')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar ingresso.')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao baixar ingresso: $e'),
-        ),
+        SnackBar(content: Text('Erro ao baixar ingresso: $e')),
       );
     }
   }

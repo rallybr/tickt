@@ -31,6 +31,8 @@ dependencies:
   shared_preferences: ^2.5.3
   mask_text_input_formatter: ^2.9.0
   confetti: ^0.7.0
+  image_gallery_saver_plus: ^4.0.1
+  device_info_plus: ^9.1.2
 
 dev_dependencies:
   flutter_test:
