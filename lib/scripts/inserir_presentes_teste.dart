@@ -66,6 +66,8 @@ void main() async {
     print('Agora você pode testar o sorteio no app.');
 
   } catch (e) {
-    print('Erro ao executar o script: $e');
+    final msg = e is Exception ? e.toString().replaceFirst('Exception: ', '') : e.toString();
+    final isLimite = msg.contains('limite de 3 ingressos');
+    print('Erro ao executar o script: $msg');
   }
 } 

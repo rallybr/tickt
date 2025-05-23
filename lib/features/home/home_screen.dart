@@ -18,7 +18,12 @@ import '../../shared/models/user_model.dart';
 // Importe outras telas conforme necessário
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final String? eventoId;
+  
+  const HomeScreen({
+    super.key,
+    this.eventoId,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -116,11 +121,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.celebration),
+                      leading: const Icon(Icons.card_giftcard),
                       title: const Text('Sorteio'),
                       onTap: () {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SorteioScreen()),
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => SorteioScreen(
+                              eventoId: widget.eventoId,
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -167,6 +178,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(builder: (_) => const EstatisticasScreen()),
+                        );
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.person),
+                      title: const Text('Meu Perfil'),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const PerfilScreen()),
                         );
                       },
                     ),

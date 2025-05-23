@@ -10,24 +10,42 @@ class IngressoService {
 
   Future<Map<String, dynamic>> buscarIngressoEEvento(String ingressoId) async {
     print('[DEBUG] Buscando ingresso com ID: $ingressoId');
-    // Buscar ingresso
-    final ingressoJson = await _supabase
-        .from('ingressos')
-        .select()
-        .eq('id', ingressoId)
-        .single();
-    final ingresso = IngressoModel.fromJson(ingressoJson);
-    // Buscar evento
-    final eventoJson = await _supabase
-        .from('eventos')
-        .select()
-        .eq('id', ingresso.eventoId)
-        .single();
-    final evento = EventoModel.fromJson(eventoJson);
-    return {
-      'ingresso': ingresso,
-      'evento': evento,
-    };
+    try {
+      final ingressoResponse = await _supabase
+          .from('ingressos')
+          .select()
+          .eq('id', ingressoId)
+          .single();
+
+      final eventoResponse = await _supabase
+          .from('eventos')
+          .select()
+          .eq('id', ingressoResponse['evento_id'])
+          .single();
+
+      // Buscar o nome do usuário (primeiro nome)
+      final perfil = await _supabase
+          .from('perfis')
+          .select('nome')
+          .eq('id', ingressoResponse['comprador_id'])
+          .maybeSingle();
+      String nomeUsuario = '';
+      if (perfil != null && perfil['nome'] != null && (perfil['nome'] as String).trim().isNotEmpty) {
+        final nomeCompleto = perfil['nome'] as String;
+        nomeUsuario = nomeCompleto.split(' ').first;
+      }
+
+      return {
+        'ingresso': IngressoModel.fromJson({
+          ...ingressoResponse,
+          'nome_usuario': nomeUsuario,
+        }),
+        'evento': EventoModel.fromJson(eventoResponse),
+      };
+    } catch (e) {
+      print('Erro ao buscar ingresso e evento: $e');
+      rethrow;
+    }
   }
 
   Future<String?> gerarIngressoParaEvento({
@@ -36,87 +54,41 @@ class IngressoService {
     required String nomeUsuario,
     required String nomeEvento,
   }) async {
-    // Verificar limite de 3 ingressos por usuário por evento
-    final ingressosUsuario = await _supabase
-        .from('ingressos')
-        .select('id')
-        .eq('evento_id', eventoId)
-        .eq('comprador_id', compradorId);
-    if (ingressosUsuario != null && ingressosUsuario is List && ingressosUsuario.length >= 3) {
-      throw Exception('Você já atingiu o limite de 3 ingressos para este evento.');
-    }
+    try {
+      // Verifica se o usuário já tem 3 ingressos para este evento
+      final ingressosExistentes = await _supabase
+          .from('ingressos')
+          .select()
+          .eq('evento_id', eventoId)
+          .eq('comprador_id', compradorId);
 
-    // Buscar o primeiro tipo de ingresso disponível para o evento
-    var tipos = await _supabase
-        .from('tipos_ingresso')
-        .select()
-        .eq('evento_id', eventoId)
-        .order('preco', ascending: true)
-        .limit(1);
-    String tipoIngressoId;
-    if (tipos == null || tipos.isEmpty) {
-      // Criar tipo de ingresso padrão
-      final tipoCriado = await _supabase.from('tipos_ingresso').insert({
-        'nome': 'Ingresso Padrão',
-        'descricao': 'Ingresso padrão do evento',
-        'preco': 0,
-        'quantidade_total': 100,
-        'quantidade_disponivel': 100,
-        'evento_id': eventoId,
-        'criador_id': compradorId,
-      }).select().single();
-      print('[DEBUG] Retorno do insert do tipo de ingresso: $tipoCriado');
-      if (tipoCriado == null || tipoCriado['id'] == null || tipoCriado['id'].toString().isEmpty) {
-        throw Exception('Falha ao criar tipo de ingresso padrão. Retorno: $tipoCriado');
+      if (ingressosExistentes.length >= 3) {
+        throw Exception('Você já atingiu o limite de 3 ingressos para este evento.');
       }
-      tipoIngressoId = tipoCriado['id'];
-    } else {
-      tipoIngressoId = tipos.first['id'];
+
+      // Gera um novo ingresso
+      final numeroIngresso = DateTime.now().millisecondsSinceEpoch.toString();
+      final codigoQr = _gerarCodigoAleatorio();
+      final dadosQr = jsonEncode({
+        'codigo_qr': codigoQr,
+        'nome_usuario': nomeUsuario,
+        'nome_evento': nomeEvento,
+      });
+      
+      final response = await _supabase.from('ingressos').insert({
+        'evento_id': eventoId,
+        'comprador_id': compradorId,
+        'status': 'reservado',
+        'data_compra': DateTime.now().toIso8601String(),
+        'numero_ingresso': numeroIngresso,
+        'codigo_qr': dadosQr,
+      }).select().single();
+
+      return response['id'];
+    } catch (e) {
+      print('Erro ao gerar ingresso: $e');
+      throw Exception(e.toString());
     }
-
-    print('[DEBUG] eventoId: ' + (eventoId ?? 'null'));
-    print('[DEBUG] compradorId: ' + (compradorId ?? 'null'));
-    print('[DEBUG] tipoIngressoId: ' + (tipoIngressoId ?? 'null'));
-
-    if (eventoId == null || eventoId.isEmpty) {
-      throw Exception('EventoId inválido');
-    }
-    if (tipoIngressoId == null || tipoIngressoId.toString().isEmpty) {
-      throw Exception('Tipo de ingresso inválido.');
-    }
-    if (compradorId == null || compradorId.isEmpty) {
-      throw Exception('ID do comprador inválido.');
-    }
-
-    // Gerar código aleatório para o ingresso (UUID v4)
-    final codigoQrUuid = const Uuid().v4();
-    final qrData = jsonEncode({
-      'codigo_qr': codigoQrUuid,
-      'nome_usuario': nomeUsuario,
-      'nome_evento': nomeEvento,
-    });
-    final numeroIngresso = DateTime.now().millisecondsSinceEpoch.toString();
-    final dataCompra = DateTime.now().toIso8601String();
-    final hashUnico = const Uuid().v4();
-
-    // Inserir ingresso no Supabase
-    final response = await _supabase.from('ingressos').insert({
-      'codigo_qr': qrData,
-      'hash_unico': hashUnico,
-      'numero_ingresso': numeroIngresso,
-      'status': 'reservado',
-      'data_compra': dataCompra,
-      'tipo_ingresso_id': tipoIngressoId,
-      'comprador_id': compradorId,
-      'evento_id': eventoId,
-    }).select().single();
-
-    print('[DEBUG] Retorno do insert do ingresso: $response');
-    if (response == null || response['id'] == null || response['id'].toString().isEmpty) {
-      throw Exception('Falha ao criar ingresso. Retorno: $response');
-    }
-
-    return response['id'];
   }
 
   String _gerarCodigoAleatorio() {
@@ -137,13 +109,110 @@ class IngressoService {
   }
 
   Future<List<IngressoModel>> buscarIngressosDoEvento(String eventoId) async {
-    final ingressosResp = await _supabase
-        .from('ingressos')
-        .select()
-        .eq('evento_id', eventoId)
-        .order('data_compra', ascending: true);
-    return (ingressosResp as List)
-        .map((json) => IngressoModel.fromJson(json))
-        .toList();
+    try {
+      final response = await _supabase
+          .from('ingressos')
+          .select()
+          .eq('evento_id', eventoId);
+
+      return response.map((json) => IngressoModel.fromJson(json)).toList();
+    } catch (e) {
+      print('Erro ao buscar ingressos: $e');
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> validarIngresso(String codigoQr) async {
+    try {
+      final ingressoResponse = await _supabase
+          .from('ingressos')
+          .select()
+          .eq('codigo_qr', codigoQr)
+          .single();
+
+      if (ingressoResponse == null) {
+        return {
+          'success': false,
+          'message': 'Ingresso não encontrado',
+        };
+      }
+
+      // Buscar nome do usuário
+      final perfil = await _supabase
+          .from('perfis')
+          .select('nome')
+          .eq('id', ingressoResponse['comprador_id'])
+          .maybeSingle();
+      String nomeUsuario = '';
+      if (perfil != null && perfil['nome'] != null && (perfil['nome'] as String).trim().isNotEmpty) {
+        final nomeCompleto = perfil['nome'] as String;
+        nomeUsuario = nomeCompleto.split(' ').first;
+      }
+
+      // Buscar nome do evento
+      final evento = await _supabase
+          .from('eventos')
+          .select('titulo')
+          .eq('id', ingressoResponse['evento_id'])
+          .maybeSingle();
+      final nomeEvento = evento != null ? evento['titulo'] ?? '' : '';
+
+      return {
+        'success': true,
+        'dados': {
+          'codigo_qr': ingressoResponse['codigo_qr'],
+          'nome_usuario': nomeUsuario,
+          'nome_evento': nomeEvento,
+        }
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'Erro ao validar ingresso: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> realizarSorteio(String eventoId) async {
+    try {
+      // Busca todos os ingressos do evento
+      final ingressos = await buscarIngressosDoEvento(eventoId);
+      
+      // Filtra apenas os ingressos com status 'presente'
+      final presentes = ingressos.where((i) => i.status == 'presente').toList();
+      
+      if (presentes.isEmpty) {
+        throw Exception('Não há participantes presentes para o sorteio.');
+      }
+
+      // Busca os perfis dos participantes
+      List<Map<String, dynamic>> participantes = [];
+      for (final ingresso in presentes) {
+        final perfil = await _supabase
+            .from('perfis')
+            .select('nome')
+            .eq('id', ingresso.compradorId)
+            .single();
+        
+        if (perfil != null) {
+          participantes.add(perfil);
+        }
+      }
+
+      if (participantes.isEmpty) {
+        throw Exception('Não foi possível encontrar os perfis dos participantes.');
+      }
+
+      // Realiza o sorteio
+      final random = DateTime.now().millisecondsSinceEpoch % participantes.length;
+      final ganhador = participantes[random];
+
+      return {
+        'success': true,
+        'ganhador': ganhador['nome'],
+      };
+    } catch (e) {
+      throw Exception('Erro ao realizar sorteio: $e');
+    }
   }
 } 

@@ -30,11 +30,17 @@ dependencies:
   permission_handler: ^11.3.0
   shared_preferences: ^2.5.3
   mask_text_input_formatter: ^2.9.0
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^2.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter_launcher_icons:
+  android: true
+  image_path: "assets/icons/app_icon.png"
 
 flutter:
   uses-material-design: true

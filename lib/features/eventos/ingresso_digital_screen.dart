@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:intl/intl.dart';
 import '../../shared/services/ingresso_service.dart';
 import '../../shared/models/ingresso_model.dart';
 import '../../shared/models/evento_model.dart';
 import '../../shared/widgets/background_image.dart';
+import '../../shared/utils/responsive_utils.dart';
+import '../../shared/widgets/ingresso_card.dart';
+import '../../shared/widgets/ingresso_ticket.dart';
 
 class IngressoDigitalScreen extends StatefulWidget {
   final String ingressoId;
@@ -30,7 +34,8 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
         backgroundColor: Colors.transparent,
         appBar: AppBar(
           title: Image.asset('assets/images/logo_tickts.png', height: 38, fit: BoxFit.contain),
-          backgroundColor: const Color(0xFFd4145a),
+          backgroundColor: Colors.transparent,
+          elevation: 0,
         ),
         body: FutureBuilder<Map<String, dynamic>>(
           future: _future,
@@ -43,142 +48,60 @@ class _IngressoDigitalScreenState extends State<IngressoDigitalScreen> {
             }
             final ingresso = snapshot.data!['ingresso'] as IngressoModel;
             final evento = snapshot.data!['evento'] as EventoModel;
-            return Center(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: _IngressoTicket(
-                    codigoQr: ingresso.codigoQr,
-                    numeroIngresso: ingresso.id,
-                    tituloEvento: evento.titulo,
-                    local: evento.local,
-                    dataInicio: evento.dataInicio,
-                    logoPath: 'assets/images/logo_evento.png', // ajuste conforme seu asset
+            final participante = ingresso.nomeUsuario ?? 'Não informado';
+            final dataFormatada = DateFormat('dd "de" MMMM "de" yyyy', 'pt_BR').format(evento.dataInicio);
+            final horaFormatada = DateFormat('HH:mm').format(evento.dataInicio) + 'h';
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  child: Padding(
+                    padding: ResponsiveUtils.getAdaptivePadding(context),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IngressoTicket(
+                          titulo: 'Confirmação de ingresso',
+                          numeroIngresso: ingresso.numeroIngresso,
+                          nomeEvento: evento.titulo,
+                          participante: participante,
+                          data: dataFormatada,
+                          hora: horaFormatada,
+                          qrData: ingresso.codigoQr ?? '',
+                          logoUrl: evento.logoEvento ?? '',
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
       ),
     );
   }
-}
 
-class _IngressoTicket extends StatelessWidget {
-  final String codigoQr;
-  final String numeroIngresso;
-  final String tituloEvento;
-  final String local;
-  final DateTime dataInicio;
-  final String logoPath;
-
-  const _IngressoTicket({
-    required this.codigoQr,
-    required this.numeroIngresso,
-    required this.tituloEvento,
-    required this.local,
-    required this.dataInicio,
-    required this.logoPath,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    return Container(
-      height: screenHeight * 0.7, // Ocupa 90% da altura da tela
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFFd4145a), Color(0xFF3a1c71)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: ResponsiveUtils.getAdaptiveFontSize(context, 16),
+            fontWeight: FontWeight.bold,
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const SizedBox(height: 24),
-          const Text(
-            'MEU INGRESSO ELETRÔNICO',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-          ),
-          const SizedBox(height: 24),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: QrImageView(
-              data: codigoQr,
-              version: QrVersions.auto,
-              size: 240,
-              eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.circle,
-                color: Colors.red,
-              ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.circle,
-                color: Colors.blue,
-              ),
-              backgroundColor: Colors.white,
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: ResponsiveUtils.getAdaptiveFontSize(context, 16),
             ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Nº $numeroIngresso',
-            style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20),
-            child: Row(
-              children: [
-                Expanded(child: Divider(color: Colors.white54, thickness: 1, endIndent: 8)),
-                const Icon(Icons.circle, color: Colors.white54, size: 14),
-                Expanded(child: Divider(color: Colors.white54, thickness: 1, indent: 8)),
-              ],
-            ),
-          ),
-          Text(
-            tituloEvento,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.location_on, color: Colors.white, size: 20),
-              const SizedBox(width: 6),
-              Text(local, style: const TextStyle(color: Colors.white, fontSize: 18)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.calendar_today, color: Colors.white, size: 20),
-              const SizedBox(width: 6),
-              Text(DateFormat('dd/MM/yyyy').format(dataInicio), style: const TextStyle(color: Colors.white, fontSize: 18)),
-              const SizedBox(width: 20),
-              const Icon(Icons.access_time, color: Colors.white, size: 20),
-              const SizedBox(width: 6),
-              Text(DateFormat('HH:mm').format(dataInicio), style: const TextStyle(color: Colors.white, fontSize: 18)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Image.asset(logoPath, height: 80), // Logo do evento (aumentado)
-          const SizedBox(height: 24),
-        ],
-      ),
+        ),
+      ],
     );
   }
 } 

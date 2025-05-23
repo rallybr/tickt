@@ -1,31 +1,47 @@
 class IngressoModel {
   final String id;
-  final String codigoQr;
-  final String numeroIngresso;
-  final String status;
-  final DateTime dataCompra;
   final String eventoId;
   final String compradorId;
+  final String status;
+  final DateTime dataCompra;
+  final String? codigoQr;
+  final String? nomeUsuario;
+  final String numeroIngresso;
 
   IngressoModel({
     required this.id,
-    required this.codigoQr,
-    required this.numeroIngresso,
-    required this.status,
-    required this.dataCompra,
     required this.eventoId,
     required this.compradorId,
+    required this.status,
+    required this.dataCompra,
+    this.codigoQr,
+    this.nomeUsuario,
+    required this.numeroIngresso,
   });
 
   factory IngressoModel.fromJson(Map<String, dynamic> json) {
     return IngressoModel(
       id: json['id'],
-      codigoQr: json['codigo_qr'] ?? json['hash_unico'] ?? '',
-      numeroIngresso: json['numero_ingresso'] ?? '',
-      status: json['status'] ?? '',
-      dataCompra: DateTime.parse(json['data_compra'] ?? json['created_at']),
-      eventoId: json['evento_id'] ?? '',
-      compradorId: json['comprador_id'] ?? '',
+      eventoId: json['evento_id'],
+      compradorId: json['comprador_id'],
+      status: json['status'],
+      dataCompra: DateTime.parse(json['data_compra']),
+      codigoQr: json['codigo_qr'],
+      nomeUsuario: json['nome_usuario'],
+      numeroIngresso: json['numero_ingresso'] ?? json['id'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'evento_id': eventoId,
+      'comprador_id': compradorId,
+      'status': status,
+      'data_compra': dataCompra.toIso8601String(),
+      'codigo_qr': codigoQr,
+      'nome_usuario': nomeUsuario,
+      'numero_ingresso': numeroIngresso,
+    };
   }
 } 

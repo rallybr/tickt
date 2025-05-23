@@ -232,13 +232,24 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   Future<void> _baixarIngresso(BuildContext context, IngressoModel ingresso) async {
     try {
+      if (ingresso.codigoQr == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('QR Code não disponível para este ingresso'),
+          ),
+        );
+        return;
+      }
+
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/ingresso_${ingresso.numeroIngresso}.png');
+      
       final qrValidationResult = QrValidator.validate(
-        data: ingresso.codigoQr,
+        data: ingresso.codigoQr!,
         version: QrVersions.auto,
         errorCorrectionLevel: QrErrorCorrectLevel.L,
       );
+      
       if (qrValidationResult.status == QrValidationStatus.valid) {
         final painter = QrPainter.withQr(
           qr: qrValidationResult.qrCode!,
@@ -252,42 +263,57 @@ class _PerfilScreenState extends State<PerfilScreen> {
         await file.writeAsBytes(
           buffer.asUint8List(imageData.offsetInBytes, imageData.lengthInBytes),
         );
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ingresso salvo na galeria/arquivos temporários.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ingresso salvo na galeria/arquivos temporários.'),
+          ),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao baixar ingresso: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao baixar ingresso: $e'),
+        ),
+      );
     }
   }
 
   Future<void> _compartilharIngresso(BuildContext context, IngressoModel ingresso) async {
     try {
+      if (ingresso.codigoQr == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('QR Code não disponível para este ingresso'),
+          ),
+        );
+        return;
+      }
+
       final tempDir = await getTemporaryDirectory();
       final file = File('${tempDir.path}/ingresso_${ingresso.numeroIngresso}.png');
-      final qrValidationResult = QrValidator.validate(
-        data: ingresso.codigoQr,
+      
+      await QrPainter(
+        data: ingresso.codigoQr!,
         version: QrVersions.auto,
-        errorCorrectionLevel: QrErrorCorrectLevel.L,
-      );
-      if (qrValidationResult.status == QrValidationStatus.valid) {
-        final painter = QrPainter.withQr(
-          qr: qrValidationResult.qrCode!,
-          color: const Color(0xFF833ab4),
-          emptyColor: Colors.white,
-          gapless: true,
-        );
-        final imageData = await painter.toImageData(300);
-        if (imageData == null) return;
-        final buffer = imageData.buffer;
-        await file.writeAsBytes(
-          buffer.asUint8List(imageData.offsetInBytes, imageData.lengthInBytes),
-        );
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: 'Meu ingresso para o evento',
-        );
-      }
+        errorCorrectionLevel: QrErrorCorrectLevel.M,
+      ).toImageData(200).then((imageData) async {
+        if (imageData != null) {
+          final buffer = imageData.buffer;
+          await file.writeAsBytes(
+            buffer.asUint8List(imageData.offsetInBytes, imageData.lengthInBytes),
+          );
+          await Share.shareXFiles(
+            [XFile(file.path)],
+            text: 'Meu ingresso',
+          );
+        }
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao compartilhar ingresso: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erro ao compartilhar ingresso: $e'),
+        ),
+      );
     }
   }
 } 
